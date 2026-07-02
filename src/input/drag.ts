@@ -13,6 +13,9 @@ export function attachDrag(
   const scale = () => logicalWidth / measureEl.clientWidth;
 
   el.addEventListener('pointerdown', (e) => {
+    // Buttons handle their own clicks — starting a drag (and pointer capture)
+    // from them would swallow the mouse click entirely.
+    if (e.target instanceof Element && e.target.closest('button')) return;
     lastClientX = e.clientX;
     el.setPointerCapture(e.pointerId);
   });
