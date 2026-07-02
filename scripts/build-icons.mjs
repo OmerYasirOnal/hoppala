@@ -21,3 +21,14 @@ await sharp({ create: { width: 512, height: 512, channels: 4, background: '#0b12
   .png()
   .toFile('public/icons/maskable-512.png');
 console.log('public/icons/maskable-512.png (512x512, safe-zone)');
+
+// App Store icon: 1024x1024, flattened onto the app background (no alpha —
+// App Store Connect rejects icons with a transparency channel).
+const storeArt = await sharp('public/icon.svg').resize(1024, 1024).png().toBuffer();
+await sharp({ create: { width: 1024, height: 1024, channels: 4, background: '#0b1220' } })
+  .composite([{ input: storeArt, gravity: 'centre' }])
+  .flatten({ background: '#0b1220' })
+  .removeAlpha()
+  .png()
+  .toFile('public/icons/store-1024.png');
+console.log('public/icons/store-1024.png (1024x1024, flattened, no alpha)');
