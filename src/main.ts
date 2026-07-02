@@ -106,6 +106,10 @@ ui.setMuted(muted);
 ui.showMenu(best, { day: dayNumber(new Date()), best: dailyBestFor(dateKey(new Date())) });
 app.addEventListener('pointerdown', () => sfx.unlock(), { once: true });
 
+if ('Capacitor' in window) {
+  void import('./platform/capacitor').then((m) => m.install()).catch(() => {});
+}
+
 const loop = createLoop({
   update: () => {
     if (!playing) return;

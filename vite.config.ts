@@ -2,7 +2,10 @@ import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig({
-  build: { target: 'es2022' },
+  // modulePreload:false drops Vite's ~850B __vitePreload chunk-preloading wrapper from the
+  // entry bundle; the native app is the only consumer of the dynamic capacitor.ts import and
+  // it doesn't need preload hints, so this keeps the web bundle at its pre-native-bridge size.
+  build: { target: 'es2022', modulePreload: false },
   plugins: [
     VitePWA({
       registerType: 'autoUpdate',
