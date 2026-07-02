@@ -27,6 +27,7 @@ export function createWorld(rng: Rng, viewHeight: number): World {
   const world: World = {
     player: { x: TUNING.viewWidth / 2, y: startY, vy: TUNING.bounceVy },
     platforms: [start],
+    // places the start platform ~60% down the view; the follow rule takes over from the first step
     cameraY: startY + 60 - viewHeight * (1 - CAMERA_LINE),
     viewHeight,
     time: 0,
@@ -59,7 +60,7 @@ export function step(world: World, targetX: number, rng: Rng): void {
   world.time += dt;
   const p = world.player;
 
-  // steering: relative-drag target, wrapped into the world
+  // steering: teleport to the wrapped drag target (relative-drag is resolved by the input layer)
   p.x = wrapX(targetX);
 
   // integrate vertical motion
@@ -73,25 +74,29 @@ export function step(world: World, targetX: number, rng: Rng): void {
     if (plat.amp > 0) plat.x = plat.baseX + Math.sin(world.time * plat.speed + plat.phase) * plat.amp;
   }
 
-  // collision: only while falling, swept across this step's foot travel
+  // collision: only while falling; among all platforms crossed by this
+  // step's foot sweep, land on the topmost (smallest y) — the first contact.
   if (p.vy > 0) {
+    let hit: Platform | null = null;
     for (const plat of world.platforms) {
       if (plat.broken) continue;
       if (footBefore <= plat.y && footAfter >= plat.y && overlapsX(p.x, plat)) {
-        p.y = plat.y - TUNING.playerR;
-        if (plat.kind === 'spring') {
-          p.vy = TUNING.bounceVy * TUNING.springMultiplier;
-          world.events.push('spring');
+        if (hit === null || plat.y < hit.y) hit = plat;
+      }
+    }
+    if (hit) {
+      p.y = hit.y - TUNING.playerR;
+      if (hit.kind === 'spring') {
+        p.vy = TUNING.bounceVy * TUNING.springMultiplier;
+        world.events.push('spring');
+      } else {
+        p.vy = TUNING.bounceVy;
+        if (hit.kind === 'crumbling') {
+          hit.broken = true;
+          world.events.push('break');
         } else {
-          p.vy = TUNING.bounceVy;
-          if (plat.kind === 'crumbling') {
-            plat.broken = true;
-            world.events.push('break');
-          } else {
-            world.events.push('bounce');
-          }
+          world.events.push('bounce');
         }
-        break;
       }
     }
   }

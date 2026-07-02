@@ -142,4 +142,15 @@ describe('step physics', () => {
       prev = w.maxAltitude;
     }
   });
+
+  it('lands on the first platform crossed in a fast sweep, not the lowest', () => {
+    const w = world();
+    w.platforms = [plat({ y: 50, x: 200 }), plat({ y: 20, x: 200 })];
+    w.player.x = 200;
+    w.player.y = 3; // foot at 19, just above the higher platform (y=20)
+    w.player.vy = 2400; // one frame's fall spans both platforms
+    step(w, 200, mulberry32(21));
+    expect(w.events).toContain('bounce');
+    expect(w.player.y).toBeCloseTo(20 - TUNING.playerR, 5);
+  });
 });
