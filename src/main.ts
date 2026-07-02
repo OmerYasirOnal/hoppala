@@ -7,7 +7,9 @@ import { attachDrag } from './input/drag';
 import { createRenderer } from './render/renderer';
 import { createSfx } from './audio/sfx';
 import { createUI, t } from './ui/screens';
-import { loadSave, saveBest, saveMuted } from './storage';
+import { loadSave, saveBest, saveMuted, saveDailyBest } from './storage';
+import { dailySeed, dayNumber, dateKey } from './core/daily';
+import { bridge, type GameMode } from './platform/bridge';
 
 const canvas = document.getElementById('game') as HTMLCanvasElement;
 const app = document.getElementById('app') as HTMLElement;
@@ -37,11 +39,20 @@ let rng: Rng = mulberry32(Date.now() >>> 0);
 let world: World = createWorld(rng, renderer.viewHeight());
 let playing = false;
 let recordCelebrated = false;
+let mode: GameMode = 'free';
+
+const todayInfo = () => {
+  const now = new Date();
+  return { day: dayNumber(now), key: dateKey(now) };
+};
+const dailyBestFor = (key: string) => (loadSave().dailyBest?.key === key ? loadSave().dailyBest!.score : 0);
 
 const meters = () => Math.floor(world.maxAltitude / 10);
 
 function shareText(score: number): string {
-  return `Hoppala 🟡 ${score} m! https://hoppala.vercel.app`;
+  return mode === 'daily'
+    ? `Hoppala #${todayInfo().day} — ${score} m! https://hoppala.vercel.app`
+    : `Hoppala 🟡 ${score} m! https://hoppala.vercel.app`;
 }
 
 async function share(): Promise<void> {
@@ -59,14 +70,16 @@ async function share(): Promise<void> {
 }
 
 const ui = createUI(uiRoot, {
-  onPlay() {
+  onPlay(m: GameMode) {
     sfx.unlock();
-    rng = mulberry32(Date.now() >>> 0);
+    mode = m;
+    const seed = m === 'daily' ? dailySeed(new Date()) : Date.now() >>> 0;
+    rng = mulberry32(seed);
     world = createWorld(rng, renderer.viewHeight());
     drag.reset(TUNING.viewWidth / 2);
     recordCelebrated = false;
     playing = true;
-    ui.showHud();
+    ui.showHud(m === 'daily' ? { day: todayInfo().day } : undefined);
   },
   onShare() {
     void share();
@@ -79,7 +92,7 @@ const ui = createUI(uiRoot, {
   },
 });
 ui.setMuted(muted);
-ui.showMenu(best);
+ui.showMenu(best, { day: todayInfo().day, best: dailyBestFor(todayInfo().key) });
 app.addEventListener('pointerdown', () => sfx.unlock(), { once: true });
 
 const loop = createLoop({
@@ -87,8 +100,8 @@ const loop = createLoop({
     if (!playing) return;
     step(world, drag.targetX(), rng);
     for (const e of world.events) {
-      if (e === 'gameover') continue;
-      sfx.play(e);
+      bridge.onEvent(e);
+      if (e !== 'gameover') sfx.play(e);
     }
     const m = meters();
     ui.setScore(m);
@@ -104,7 +117,11 @@ const loop = createLoop({
         best = m;
         saveBest(best);
       }
-      ui.showGameOver(m, best, isRecord);
+      const tk = todayInfo();
+      const db = dailyBestFor(tk.key);
+      if (mode === 'daily' && m > db) saveDailyBest(tk.key, m);
+      bridge.submitScore(m, mode);
+      ui.showGameOver(m, best, isRecord, mode === 'daily' ? { day: tk.day, best: Math.max(db, m) } : undefined);
     }
   },
   render: (alpha) => renderer.draw(world, alpha),

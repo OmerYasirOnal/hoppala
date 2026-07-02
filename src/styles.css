@@ -33,4 +33,5 @@ html, body { height: 100%; background: #0b1220; overscroll-behavior: none; }
   background: transparent; font-size: 22px; padding: 6px;
 }
 #ui .toast { position: absolute; bottom: 15%; font-size: 14px; opacity: 0.9; }
+#ui .daybadge { margin-left: 10px; opacity: 0.75; font-size: 15px; }
 .hidden { display: none !important; }

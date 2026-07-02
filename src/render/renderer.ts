@@ -1,4 +1,5 @@
 import { TUNING, type Platform, type World } from '../game/types';
+import { phantomVisible } from '../game/sim';
 
 /** Altitude atmosphere: [altitude px, top color, bottom color] stops, lerped. */
 const SKY: Array<[number, [number, number, number], [number, number, number]]> = [
@@ -54,9 +55,18 @@ export function createRenderer(canvas: HTMLCanvasElement): {
     ctx.setTransform((cssW * dpr) / TUNING.viewWidth, 0, 0, (cssW * dpr) / TUNING.viewWidth, 0, 0);
   }
 
-  function drawPlatform(p: Platform, camY: number): void {
+  function drawPlatform(p: Platform, camY: number, time: number): void {
     if (p.broken) return;
     const y = p.y - camY;
+    if (p.kind === 'phantom') {
+      const cycle = TUNING.phantomOn + TUNING.phantomOff;
+      const tt = (((time + p.phase) % cycle) + cycle) % cycle;
+      const a = phantomVisible(p, time)
+        ? Math.min(1, tt / 0.25, (TUNING.phantomOn - tt) / 0.25)
+        : 0;
+      if (a <= 0) return;
+      ctx.globalAlpha = Math.max(0.15, a);
+    }
     ctx.fillStyle = PLATFORM_COLORS[p.kind];
     ctx.beginPath();
     ctx.roundRect(p.x - p.w / 2, y, p.w, TUNING.platformH, 7);
@@ -76,6 +86,7 @@ export function createRenderer(canvas: HTMLCanvasElement): {
       ctx.lineTo(p.x + 5, y + 4);
       ctx.stroke();
     }
+    ctx.globalAlpha = 1;
   }
 
   function drawPlayer(world: World, camY: number, px: number, py: number): void {
@@ -118,7 +129,23 @@ export function createRenderer(canvas: HTMLCanvasElement): {
       }
     }
 
-    for (const p of world.platforms) drawPlatform(p, camY);
+    for (const p of world.platforms) drawPlatform(p, camY, world.time);
+
+    for (const pk of world.pickups) {
+      if (pk.taken) continue;
+      const bob = Math.sin(world.time * 4 + pk.id) * 2;
+      const y = pk.y - camY + bob;
+      ctx.fillStyle = '#ff9f43';
+      ctx.beginPath();
+      ctx.arc(pk.x, y, TUNING.pickupR - 3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#ffd23e';
+      ctx.beginPath();
+      ctx.moveTo(pk.x, y - TUNING.pickupR + 1);
+      ctx.lineTo(pk.x - 4, y + 2);
+      ctx.lineTo(pk.x + 4, y + 2);
+      ctx.fill();
+    }
 
     const w = TUNING.viewWidth;
     const rawDx = world.player.x - world.player.prevX;
@@ -126,6 +153,15 @@ export function createRenderer(canvas: HTMLCanvasElement): {
     const px = (((world.player.prevX + dx * alpha) % w) + w) % w;
     const py = world.player.prevY + (world.player.y - world.player.prevY) * alpha;
     drawPlayer(world, camY, px, py);
+
+    if (world.player.boostT > 0) {
+      ctx.fillStyle = 'rgba(255, 159, 67, 0.85)';
+      ctx.beginPath();
+      ctx.moveTo(px - 6, py - camY + TUNING.playerR - 2);
+      ctx.lineTo(px + 6, py - camY + TUNING.playerR - 2);
+      ctx.lineTo(px, py - camY + TUNING.playerR + 14 + Math.sin(world.time * 30) * 3);
+      ctx.fill();
+    }
   }
 
   return { resize, draw, viewHeight: () => viewH };
