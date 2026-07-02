@@ -1,5 +1,5 @@
 import type { Rng } from '../core/rng';
-import { nextPlatform } from './spawner';
+import { nextPlatform, spawnExtras } from './spawner';
 import { JUMP_HEIGHT, TUNING, type Platform, type World } from './types';
 
 const SPAWN_AHEAD_FACTOR = 1.0; // keep one screen of platforms above the camera
@@ -16,6 +16,12 @@ function overlapsX(px: number, plat: Platform): boolean {
   const half = plat.w / 2 + TUNING.playerR * 0.7;
   const dx = Math.abs(px - plat.x);
   return Math.min(dx, TUNING.viewWidth - dx) <= half;
+}
+
+/** Binary phantom visibility window — collision follows this exactly. */
+export function phantomVisible(plat: Platform, time: number): boolean {
+  const cycle = TUNING.phantomOn + TUNING.phantomOff;
+  return (((time + plat.phase) % cycle) + cycle) % cycle < TUNING.phantomOn;
 }
 
 export function createWorld(rng: Rng, viewHeight: number): World {
@@ -55,10 +61,14 @@ export function createWorld(rng: Rng, viewHeight: number): World {
 function fillPlatforms(world: World, rng: Rng): void {
   const targetY = world.cameraY - world.viewHeight * SPAWN_AHEAD_FACTOR;
   while (world.nextSpawnY > targetY) {
-    const altitude = world.startY - world.nextSpawnY;
-    const p = nextPlatform(world.nextSpawnY, altitude, rng, world.idSeq++);
+    const prevY = world.nextSpawnY;
+    const altitude = world.startY - prevY;
+    const p = nextPlatform(prevY, altitude, rng, world.idSeq++);
     world.platforms.push(p);
     world.nextSpawnY = p.y;
+    const extras = spawnExtras(p, prevY, altitude, rng, world.idSeq++, world.idSeq++);
+    if (extras.phantom) world.platforms.push(extras.phantom);
+    if (extras.pickup) world.pickups.push(extras.pickup);
   }
 }
 
@@ -76,10 +86,16 @@ export function step(world: World, targetX: number, rng: Rng): void {
   // steering: teleport to the wrapped drag target (relative-drag is resolved by the input layer)
   p.x = wrapX(targetX);
 
-  // integrate vertical motion
-  const footBefore = p.y + TUNING.playerR;
-  p.vy += TUNING.gravity * dt;
-  p.y += p.vy * dt;
+  // integrate vertical motion (jetpack boost overrides gravity + collision)
+  let footBefore = p.y + TUNING.playerR;
+  if (p.boostT > 0) {
+    p.boostT = Math.max(0, p.boostT - dt);
+    p.vy = TUNING.boostVy;
+    p.y += p.vy * dt;
+  } else {
+    p.vy += TUNING.gravity * dt;
+    p.y += p.vy * dt;
+  }
   const footAfter = p.y + TUNING.playerR;
 
   // moving platforms oscillate
@@ -87,12 +103,13 @@ export function step(world: World, targetX: number, rng: Rng): void {
     if (plat.amp > 0) plat.x = plat.baseX + Math.sin(world.time * plat.speed + plat.phase) * plat.amp;
   }
 
-  // collision: only while falling; among all platforms crossed by this
-  // step's foot sweep, land on the topmost (smallest y) — the first contact.
-  if (p.vy > 0) {
+  // collision: only while falling and not boosting; among all platforms crossed
+  // by this step's foot sweep, land on the topmost (smallest y) — first contact.
+  if (p.vy > 0 && p.boostT === 0) {
     let hit: Platform | null = null;
     for (const plat of world.platforms) {
       if (plat.broken) continue;
+      if (plat.kind === 'phantom' && !phantomVisible(plat, world.time)) continue;
       if (footBefore <= plat.y && footAfter >= plat.y && overlapsX(p.x, plat)) {
         if (hit === null || plat.y < hit.y) hit = plat;
       }
@@ -114,6 +131,20 @@ export function step(world: World, targetX: number, rng: Rng): void {
     }
   }
 
+  // pickups: circle overlap (wrap-aware), grants a jetpack boost
+  for (const pk of world.pickups) {
+    if (pk.taken) continue;
+    const dxr = Math.abs(p.x - pk.x);
+    const dx = Math.min(dxr, TUNING.viewWidth - dxr);
+    const dy = p.y - pk.y;
+    const rr = TUNING.playerR + TUNING.pickupR;
+    if (dx * dx + dy * dy <= rr * rr) {
+      pk.taken = true;
+      p.boostT = TUNING.boostDuration;
+      world.events.push('boost');
+    }
+  }
+
   // camera: follow upward only
   world.cameraY = Math.min(world.cameraY, p.y - world.viewHeight * CAMERA_LINE);
 
@@ -124,6 +155,7 @@ export function step(world: World, targetX: number, rng: Rng): void {
   fillPlatforms(world, rng);
   const cullBelow = world.cameraY + world.viewHeight + CULL_MARGIN;
   world.platforms = world.platforms.filter((pl) => pl.y <= cullBelow && !pl.broken);
+  world.pickups = world.pickups.filter((pk) => pk.y <= cullBelow && !pk.taken);
 
   // death: fell below the view
   if (p.y - TUNING.playerR > world.cameraY + world.viewHeight) {

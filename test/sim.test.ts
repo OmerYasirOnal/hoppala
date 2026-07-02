@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { mulberry32 } from '../src/core/rng';
-import { createWorld, step } from '../src/game/sim';
+import { createWorld, step, phantomVisible } from '../src/game/sim';
 import { TUNING, type Platform } from '../src/game/types';
 
 const VIEW_H = 700;
@@ -163,5 +163,75 @@ describe('step physics', () => {
     step(w, 200, mulberry32(21));
     expect(w.events).toContain('bounce');
     expect(w.player.y).toBeCloseTo(20 - TUNING.playerR, 5);
+  });
+});
+
+describe('v1.1 content', () => {
+  it('phantoms collide only during their ON window', () => {
+    const w = world();
+    const ph = plat({ kind: 'phantom', y: 40, phase: 0 });
+    w.platforms = [ph];
+    // world.time starts at 0; after one step time=dt (<1.6s) → ON
+    w.player.y = 40 - TUNING.playerR - 1;
+    w.player.vy = 300;
+    let bounced = false;
+    for (let i = 0; i < 5 && !bounced; i++) {
+      step(w, w.player.x, mulberry32(41));
+      bounced = w.events.includes('bounce');
+    }
+    expect(bounced).toBe(true);
+    // now force the OFF window and try again
+    const w2 = world();
+    const off = plat({ kind: 'phantom', y: 40, phase: TUNING.phantomOn + 0.1 }); // starts OFF
+    w2.platforms = [off];
+    w2.player.y = 40 - TUNING.playerR - 1;
+    w2.player.vy = 300;
+    step(w2, w2.player.x, mulberry32(42));
+    expect(w2.events).not.toContain('bounce');
+    expect(phantomVisible(off, 0.01)).toBe(false);
+    expect(phantomVisible(ph, 0.01)).toBe(true);
+  });
+
+  it('collecting a pickup emits boost once and drives an ascent without collisions', () => {
+    const w = world();
+    w.platforms = [plat({ y: 200 })];
+    w.pickups = [{ id: 9, x: w.player.x, y: w.player.y - 10, taken: false }];
+    step(w, w.player.x, mulberry32(43));
+    expect(w.events).toContain('boost');
+    expect(w.pickups.every((pk) => pk.taken)).toBe(true);
+    expect(w.player.boostT).toBeGreaterThan(0);
+    // during boost: rises at boostVy and ignores platforms directly below? (none in path)
+    const yBefore = w.player.y;
+    step(w, w.player.x, mulberry32(44));
+    expect(w.events).not.toContain('boost'); // once only
+    expect(w.player.y).toBeLessThan(yBefore);
+    expect(w.player.vy).toBe(TUNING.boostVy);
+  });
+
+  it('boost expires after boostDuration and normal physics resume', () => {
+    const w = world();
+    w.platforms = [];
+    w.pickups = [];
+    w.player.boostT = TUNING.boostDuration;
+    const steps = Math.ceil(TUNING.boostDuration / TUNING.dt) + 2;
+    for (let i = 0; i < steps; i++) step(w, w.player.x, mulberry32(45));
+    expect(w.player.boostT).toBe(0);
+    // gravity is acting again: vy grows more positive over subsequent steps
+    const vy1 = w.player.vy;
+    step(w, w.player.x, mulberry32(46));
+    expect(w.player.vy).toBeGreaterThan(vy1);
+  });
+
+  it('seeded worlds now also spawn pickups/phantoms deterministically', () => {
+    const run = () => {
+      const w = world(4242);
+      for (let i = 0; i < 400; i++) step(w, 200, mulberry32(4242 + i));
+      return {
+        alt: w.maxAltitude,
+        plats: w.platforms.length,
+        picks: w.pickups.length,
+      };
+    };
+    expect(run()).toEqual(run());
   });
 });
