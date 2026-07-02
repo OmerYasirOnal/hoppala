@@ -18,6 +18,12 @@ renderer.resize();
 window.addEventListener('resize', () => {
   renderer.resize();
   world.viewHeight = renderer.viewHeight();
+  // shrinking the view (rotation) must not teleport the death line above the player
+  const deathLine = world.cameraY + world.viewHeight;
+  if (world.player.y + TUNING.playerR > deathLine) {
+    world.cameraY = world.player.y + TUNING.playerR - world.viewHeight;
+    world.prevCameraY = world.cameraY;
+  }
 });
 
 const drag = attachDrag(app, TUNING.viewWidth, canvas);
@@ -101,7 +107,7 @@ const loop = createLoop({
       ui.showGameOver(m, best, isRecord);
     }
   },
-  render: () => renderer.draw(world),
+  render: (alpha) => renderer.draw(world, alpha),
   dt: TUNING.dt,
 });
 loop.start();

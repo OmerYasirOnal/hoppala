@@ -24,11 +24,19 @@ export function createWorld(rng: Rng, viewHeight: number): World {
     id: 0, kind: 'static', x: TUNING.viewWidth / 2, y: startY + 60,
     w: TUNING.platformW, baseX: TUNING.viewWidth / 2, amp: 0, speed: 0, phase: 0, broken: false,
   };
+  const startCameraY = startY + 60 - viewHeight * (1 - CAMERA_LINE);
   const world: World = {
-    player: { x: TUNING.viewWidth / 2, y: startY, vy: TUNING.bounceVy },
+    player: {
+      x: TUNING.viewWidth / 2,
+      y: startY,
+      vy: TUNING.bounceVy,
+      prevX: TUNING.viewWidth / 2,
+      prevY: startY,
+    },
     platforms: [start],
     // places the start platform ~60% down the view; the follow rule takes over from the first step
-    cameraY: startY + 60 - viewHeight * (1 - CAMERA_LINE),
+    cameraY: startCameraY,
+    prevCameraY: startCameraY,
     viewHeight,
     time: 0,
     startY,
@@ -59,6 +67,9 @@ export function step(world: World, targetX: number, rng: Rng): void {
   const dt = TUNING.dt;
   world.time += dt;
   const p = world.player;
+  p.prevX = p.x;
+  p.prevY = p.y;
+  world.prevCameraY = world.cameraY;
 
   // steering: teleport to the wrapped drag target (relative-drag is resolved by the input layer)
   p.x = wrapX(targetX);
@@ -110,7 +121,7 @@ export function step(world: World, targetX: number, rng: Rng): void {
   // keep the board filled above, cull far below
   fillPlatforms(world, rng);
   const cullBelow = world.cameraY + world.viewHeight + CULL_MARGIN;
-  world.platforms = world.platforms.filter((pl) => pl.y <= cullBelow);
+  world.platforms = world.platforms.filter((pl) => pl.y <= cullBelow && !pl.broken);
 
   // death: fell below the view
   if (p.y - TUNING.playerR > world.cameraY + world.viewHeight) {

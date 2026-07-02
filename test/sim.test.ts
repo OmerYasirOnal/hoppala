@@ -143,6 +143,17 @@ describe('step physics', () => {
     }
   });
 
+  it('tracks previous positions for render interpolation', () => {
+    const w = world();
+    const x0 = w.player.x;
+    const y0 = w.player.y;
+    const cam0 = w.cameraY;
+    step(w, x0, mulberry32(30));
+    expect(w.player.prevX).toBe(x0);
+    expect(w.player.prevY).toBe(y0);
+    expect(w.prevCameraY).toBe(cam0);
+  });
+
   it('lands on the first platform crossed in a fast sweep, not the lowest', () => {
     const w = world();
     w.platforms = [plat({ y: 50, x: 200 }), plat({ y: 20, x: 200 })];

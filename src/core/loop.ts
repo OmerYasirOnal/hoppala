@@ -5,6 +5,7 @@ export function advance(
   dt: number,
   maxFrame = 0.25,
 ): { steps: number; acc: number } {
+  if (dt <= 0) return { steps: 0, acc };
   let a = acc + Math.min(frameDt, maxFrame);
   let steps = 0;
   while (a >= dt) {
@@ -23,6 +24,7 @@ export function createLoop(opts: {
   let raf = 0;
   let last = 0;
   let acc = 0;
+  let running = false;
   const frame = (now: number) => {
     const frameDt = last === 0 ? dt : (now - last) / 1000;
     last = now;
@@ -34,11 +36,14 @@ export function createLoop(opts: {
   };
   return {
     start() {
+      if (running) return;
+      running = true;
       last = 0;
       acc = 0;
       raf = requestAnimationFrame(frame);
     },
     stop() {
+      running = false;
       cancelAnimationFrame(raf);
     },
   };

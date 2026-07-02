@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { advance } from '../src/core/loop';
+import { describe, it, expect, vi } from 'vitest';
+import { advance, createLoop } from '../src/core/loop';
 
 describe('advance (fixed-timestep accumulator)', () => {
   it('emits whole steps and keeps the remainder', () => {
@@ -20,5 +20,30 @@ describe('advance (fixed-timestep accumulator)', () => {
       total += r.steps;
     }
     expect(total).toBe(3);
+  });
+  it('returns zero steps for a non-positive dt instead of looping forever', () => {
+    expect(advance(0.5, 0.1, 0)).toEqual({ steps: 0, acc: 0.5 });
+    expect(advance(0.5, 0.1, -1)).toEqual({ steps: 0, acc: 0.5 });
+  });
+});
+
+describe('createLoop', () => {
+  it('start() is idempotent — a second call never schedules a duplicate frame', () => {
+    const raf = vi.fn(() => 1);
+    const caf = vi.fn();
+    vi.stubGlobal('requestAnimationFrame', raf);
+    vi.stubGlobal('cancelAnimationFrame', caf);
+    try {
+      const loop = createLoop({ update: () => {}, render: () => {} });
+      loop.start();
+      loop.start(); // no-op while running
+      expect(raf).toHaveBeenCalledTimes(1);
+      loop.stop();
+      loop.start(); // restart allowed after stop
+      expect(raf).toHaveBeenCalledTimes(2);
+      loop.stop();
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });

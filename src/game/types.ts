@@ -32,6 +32,8 @@ export interface Player {
   x: number;
   y: number; // center
   vy: number;
+  prevX: number;
+  prevY: number;
 }
 
 export type SimEvent = 'bounce' | 'spring' | 'break' | 'gameover';
@@ -40,6 +42,7 @@ export interface World {
   player: Player;
   platforms: Platform[];
   cameraY: number; // world y of the viewport top
+  prevCameraY: number;
   viewHeight: number;
   time: number;
   startY: number;

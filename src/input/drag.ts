@@ -14,6 +14,7 @@ export function attachDrag(
   const scale = () => logicalWidth / measureEl.clientWidth;
 
   el.addEventListener('pointerdown', (e) => {
+    if (!e.isPrimary || e.button !== 0) return; // right-click / secondary pointers never start a drag
     // Buttons handle their own clicks — starting a drag (and pointer capture)
     // from them would swallow the mouse click entirely.
     if (e.target instanceof Element && e.target.closest('button')) return;
@@ -34,6 +35,7 @@ export function attachDrag(
   };
   el.addEventListener('pointerup', end);
   el.addEventListener('pointercancel', end);
+  el.addEventListener('contextmenu', (e) => e.preventDefault());
 
   return {
     targetX: () => target,

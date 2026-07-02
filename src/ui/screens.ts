@@ -31,6 +31,7 @@ export function createUI(
   const panel = root.querySelector('#panel') as HTMLElement;
   const muteBtn = root.querySelector('#mute') as HTMLButtonElement;
   const toastEl = root.querySelector('#toast') as HTMLElement;
+  let lastScore = -1;
 
   muteBtn.addEventListener('click', (e) => {
     e.stopPropagation();
@@ -87,6 +88,8 @@ export function createUI(
     showGameOver,
     showHud,
     setScore: (m) => {
+      if (m === lastScore) return;
+      lastScore = m;
       scoreEl.textContent = `${m} m`;
     },
     setMuted,

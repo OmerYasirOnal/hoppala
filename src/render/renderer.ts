@@ -32,7 +32,7 @@ const PLATFORM_COLORS: Record<Platform['kind'], string> = {
 
 export function createRenderer(canvas: HTMLCanvasElement): {
   resize(): void;
-  draw(world: World): void;
+  draw(world: World, alpha?: number): void;
   viewHeight(): number;
 } {
   const ctx = canvas.getContext('2d')!;
@@ -77,11 +77,11 @@ export function createRenderer(canvas: HTMLCanvasElement): {
     }
   }
 
-  function drawPlayer(world: World): void {
+  function drawPlayer(world: World, camY: number, px: number, py: number): void {
     const r = TUNING.playerR;
-    const y = world.player.y - world.cameraY;
+    const y = py - camY;
     for (const ox of [0, -TUNING.viewWidth, TUNING.viewWidth]) {
-      const x = world.player.x + ox;
+      const x = px + ox;
       if (x < -r || x > TUNING.viewWidth + r) continue;
       ctx.fillStyle = '#ffd23e';
       ctx.beginPath();
@@ -97,7 +97,9 @@ export function createRenderer(canvas: HTMLCanvasElement): {
     }
   }
 
-  function draw(world: World): void {
+  function draw(world: World, alpha = 1): void {
+    const camY = world.prevCameraY + (world.cameraY - world.prevCameraY) * alpha;
+
     const sky = skyAt(world.maxAltitude);
     const g = ctx.createLinearGradient(0, 0, 0, viewH);
     g.addColorStop(0, sky.top);
@@ -110,13 +112,19 @@ export function createRenderer(canvas: HTMLCanvasElement): {
       for (let i = 0; i < 40; i++) {
         // deterministic star field scrolled with parallax
         const sx = ((i * 89) % TUNING.viewWidth) + (i % 3);
-        const sy = (((i * 211) % 900) - ((world.cameraY * 0.15) % 900) + 900) % 900;
+        const sy = (((i * 211) % 900) - ((camY * 0.15) % 900) + 900) % 900;
         if (sy < viewH) ctx.fillRect(sx, sy, 2, 2);
       }
     }
 
-    for (const p of world.platforms) drawPlatform(p, world.cameraY);
-    drawPlayer(world);
+    for (const p of world.platforms) drawPlatform(p, camY);
+
+    const w = TUNING.viewWidth;
+    const rawDx = world.player.x - world.player.prevX;
+    const dx = ((rawDx + w * 1.5) % w) - w / 2;
+    const px = (((world.player.prevX + dx * alpha) % w) + w) % w;
+    const py = world.player.prevY + (world.player.y - world.player.prevY) * alpha;
+    drawPlayer(world, camY, px, py);
   }
 
   return { resize, draw, viewHeight: () => viewH };
