@@ -12,13 +12,22 @@ public class GameCenterPlugin: CAPPlugin, CAPBridgedPlugin {
     ]
 
     @objc func authenticate(_ call: CAPPluginCall) {
-        GKLocalPlayer.local.authenticateHandler = { [weak self] viewController, error in
+        // The handler fires more than once (first to hand us the sign-in VC,
+        // again with the final outcome) and possibly after this method returns:
+        // keep the call alive and resolve it exactly once, on a final firing.
+        call.keepAlive = true
+        var didResolve = false
+        GKLocalPlayer.local.authenticateHandler = { [weak self] viewController, _ in
             if let vc = viewController {
                 DispatchQueue.main.async {
                     self?.bridge?.viewController?.present(vc, animated: true)
                 }
+                return // not final — wait for the completion firing
             }
+            guard !didResolve else { return }
+            didResolve = true
             call.resolve(["authenticated": GKLocalPlayer.local.isAuthenticated])
+            self?.bridge?.releaseCall(call)
         }
     }
 
