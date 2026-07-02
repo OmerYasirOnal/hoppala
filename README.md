@@ -4,6 +4,8 @@ Endless vertical jumper for your phone's browser. Drag to steer, bounce forever,
 climb from the ground into the stars.
 
 **Play:** https://hoppala.vercel.app — add it to your home screen, works offline.
+Two modes: free play and a daily board everyone shares (Wordle-style). Watch for
+phantom platforms and grab jetpack boosts.
 
 ![Hoppala gameplay](docs/media/hoppala.gif)
 

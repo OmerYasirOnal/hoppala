@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { dateKey, dayNumber, dailySeed } from '../src/core/daily';
+import { dateKey, dayNumber, dailySeed, runIdentity } from '../src/core/daily';
 
 describe('daily', () => {
   it('formats the LOCAL date as YYYY-MM-DD', () => {
@@ -22,5 +22,11 @@ describe('daily', () => {
     expect(Number.isInteger(a1)).toBe(true);
     expect(a1).toBeGreaterThanOrEqual(0);
     expect(a1).toBeLessThan(2 ** 32);
+  });
+
+  it('runIdentity is one consistent snapshot', () => {
+    const d = new Date(2026, 6, 2, 23, 59, 30);
+    const r = runIdentity(d);
+    expect(r).toEqual({ day: dayNumber(d), key: dateKey(d), seed: dailySeed(d) });
   });
 });

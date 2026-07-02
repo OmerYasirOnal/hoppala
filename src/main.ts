@@ -8,7 +8,7 @@ import { createRenderer } from './render/renderer';
 import { createSfx } from './audio/sfx';
 import { createUI, t } from './ui/screens';
 import { loadSave, saveBest, saveMuted, saveDailyBest } from './storage';
-import { dailySeed, dayNumber, dateKey } from './core/daily';
+import { dayNumber, dateKey, runIdentity, type RunIdentity } from './core/daily';
 import { bridge, type GameMode } from './platform/bridge';
 
 const canvas = document.getElementById('game') as HTMLCanvasElement;
@@ -40,18 +40,21 @@ let world: World = createWorld(rng, renderer.viewHeight());
 let playing = false;
 let recordCelebrated = false;
 let mode: GameMode = 'free';
+/** Snapshot of the daily run's identity, captured once at play start. Null in free mode. */
+let runId: RunIdentity | null = null;
+/** Baseline this run's in-progress record blip and game-over isRecord are compared against. */
+let runBestBaseline = 0;
 
-const todayInfo = () => {
-  const now = new Date();
-  return { day: dayNumber(now), key: dateKey(now) };
+const dailyBestFor = (key: string): number => {
+  const save = loadSave();
+  return save.dailyBest?.key === key ? save.dailyBest!.score : 0;
 };
-const dailyBestFor = (key: string) => (loadSave().dailyBest?.key === key ? loadSave().dailyBest!.score : 0);
 
 const meters = () => Math.floor(world.maxAltitude / 10);
 
 function shareText(score: number): string {
-  return mode === 'daily'
-    ? `Hoppala #${todayInfo().day} — ${score} m! https://hoppala.vercel.app`
+  return mode === 'daily' && runId
+    ? `Hoppala #${runId.day} — ${score} m! https://hoppala.vercel.app`
     : `Hoppala 🟡 ${score} m! https://hoppala.vercel.app`;
 }
 
@@ -73,13 +76,21 @@ const ui = createUI(uiRoot, {
   onPlay(m: GameMode) {
     sfx.unlock();
     mode = m;
-    const seed = m === 'daily' ? dailySeed(new Date()) : Date.now() >>> 0;
+    const now = new Date();
+    if (m === 'daily') {
+      runId = runIdentity(now);
+      runBestBaseline = dailyBestFor(runId.key);
+    } else {
+      runId = null;
+      runBestBaseline = best;
+    }
+    const seed = m === 'daily' ? runId!.seed : Date.now() >>> 0;
     rng = mulberry32(seed);
     world = createWorld(rng, renderer.viewHeight());
     drag.reset(TUNING.viewWidth / 2);
     recordCelebrated = false;
     playing = true;
-    ui.showHud(m === 'daily' ? { day: todayInfo().day } : undefined);
+    ui.showHud(m === 'daily' ? { day: runId!.day } : undefined);
   },
   onShare() {
     void share();
@@ -92,7 +103,7 @@ const ui = createUI(uiRoot, {
   },
 });
 ui.setMuted(muted);
-ui.showMenu(best, { day: todayInfo().day, best: dailyBestFor(todayInfo().key) });
+ui.showMenu(best, { day: dayNumber(new Date()), best: dailyBestFor(dateKey(new Date())) });
 app.addEventListener('pointerdown', () => sfx.unlock(), { once: true });
 
 const loop = createLoop({
@@ -105,23 +116,26 @@ const loop = createLoop({
     }
     const m = meters();
     ui.setScore(m);
-    if (!recordCelebrated && best > 0 && m > best) {
+    if (!recordCelebrated && runBestBaseline > 0 && m > runBestBaseline) {
       recordCelebrated = true;
       sfx.play('record');
     }
     if (world.over) {
       playing = false;
       sfx.play('gameover');
-      const isRecord = m > best;
-      if (isRecord) {
+      const isRecord = m > runBestBaseline;
+      if (mode === 'free' && isRecord) {
         best = m;
         saveBest(best);
       }
-      const tk = todayInfo();
-      const db = dailyBestFor(tk.key);
-      if (mode === 'daily' && m > db) saveDailyBest(tk.key, m);
-      bridge.submitScore(m, mode);
-      ui.showGameOver(m, best, isRecord, mode === 'daily' ? { day: tk.day, best: Math.max(db, m) } : undefined);
+      if (mode === 'daily' && runId && isRecord) saveDailyBest(runId.key, m);
+      bridge.submitScore(m, mode, runId?.day);
+      ui.showGameOver(
+        m,
+        best,
+        isRecord,
+        mode === 'daily' && runId ? { day: runId.day, best: Math.max(runBestBaseline, m) } : undefined,
+      );
     }
   },
   render: (alpha) => renderer.draw(world, alpha),

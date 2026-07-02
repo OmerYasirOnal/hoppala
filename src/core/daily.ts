@@ -30,3 +30,14 @@ export function dailySeed(d: Date): number {
   }
   return h >>> 0;
 }
+
+export interface RunIdentity {
+  day: number;
+  key: string;
+  seed: number;
+}
+
+/** One consistent identity for a daily run, captured at play start. */
+export function runIdentity(d: Date): RunIdentity {
+  return { day: dayNumber(d), key: dateKey(d), seed: dailySeed(d) };
+}

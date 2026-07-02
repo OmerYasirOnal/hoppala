@@ -5,7 +5,7 @@ export type GameMode = 'free' | 'daily';
 /** Seam for sub-project B (Capacitor): haptics + Game Center attach here. */
 export interface PlatformBridge {
   onEvent(event: SimEvent): void;
-  submitScore(score: number, mode: GameMode): void;
+  submitScore(score: number, mode: GameMode, day?: number): void;
   showLeaderboard?(): void;
 }
 
@@ -21,6 +21,6 @@ export function setBridge(b: PlatformBridge): void {
 /** Stable import for main.ts — delegates to whatever bridge is installed. */
 export const bridge: PlatformBridge = {
   onEvent: (e) => current.onEvent(e),
-  submitScore: (score, mode) => current.submitScore(score, mode),
+  submitScore: (score, mode, day) => current.submitScore(score, mode, day),
   showLeaderboard: () => current.showLeaderboard?.(),
 };
