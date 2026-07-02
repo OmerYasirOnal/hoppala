@@ -3,6 +3,7 @@ const KEY = 'hoppala:v1';
 export interface Save {
   best: number;
   muted: boolean;
+  dailyBest?: { key: string; score: number };
 }
 
 function read(): Save {
@@ -10,7 +11,12 @@ function read(): Save {
     const raw = localStorage.getItem(KEY);
     if (!raw) return { best: 0, muted: false };
     const v = JSON.parse(raw) as Partial<Save>;
-    return { best: typeof v.best === 'number' ? v.best : 0, muted: v.muted === true };
+    const save: Save = { best: typeof v.best === 'number' ? v.best : 0, muted: v.muted === true };
+    const db = v.dailyBest;
+    if (db && typeof db === 'object' && typeof db.key === 'string' && typeof db.score === 'number') {
+      save.dailyBest = { key: db.key, score: db.score };
+    }
+    return save;
   } catch {
     return { best: 0, muted: false };
   }
@@ -34,4 +40,8 @@ export function saveBest(best: number): void {
 
 export function saveMuted(muted: boolean): void {
   write({ ...read(), muted });
+}
+
+export function saveDailyBest(key: string, score: number): void {
+  write({ ...read(), dailyBest: { key, score } });
 }

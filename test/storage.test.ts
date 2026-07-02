@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { loadSave, saveBest, saveMuted } from '../src/storage';
+import { loadSave, saveBest, saveMuted, saveDailyBest } from '../src/storage';
 
 function mockLocalStorage(store: Record<string, string> = {}) {
   vi.stubGlobal('localStorage', {
@@ -38,5 +38,18 @@ describe('storage', () => {
     });
     expect(loadSave()).toEqual({ best: 0, muted: false });
     expect(() => saveBest(5)).not.toThrow();
+  });
+
+  it('roundtrips dailyBest additively and tolerates legacy saves', () => {
+    const store = mockLocalStorage({ 'hoppala:v1': JSON.stringify({ best: 42, muted: true }) });
+    expect(loadSave()).toEqual({ best: 42, muted: true });
+    saveDailyBest('2026-07-02', 133);
+    expect(loadSave()).toEqual({ best: 42, muted: true, dailyBest: { key: '2026-07-02', score: 133 } });
+    expect(JSON.parse(store['hoppala:v1']!).best).toBe(42);
+  });
+
+  it('drops a malformed dailyBest instead of crashing', () => {
+    mockLocalStorage({ 'hoppala:v1': JSON.stringify({ best: 1, muted: false, dailyBest: 'nope' }) });
+    expect(loadSave()).toEqual({ best: 1, muted: false });
   });
 });
