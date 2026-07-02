@@ -9,6 +9,7 @@ export function attachDrag(
 ): { targetX(): number; reset(x: number): void } {
   let target = logicalWidth / 2;
   let lastClientX: number | null = null;
+  let activePointerId: number | null = null;
 
   const scale = () => logicalWidth / measureEl.clientWidth;
 
@@ -16,15 +17,19 @@ export function attachDrag(
     // Buttons handle their own clicks — starting a drag (and pointer capture)
     // from them would swallow the mouse click entirely.
     if (e.target instanceof Element && e.target.closest('button')) return;
+    if (activePointerId !== null) return; // one steering finger at a time
+    activePointerId = e.pointerId;
     lastClientX = e.clientX;
     el.setPointerCapture(e.pointerId);
   });
   el.addEventListener('pointermove', (e) => {
-    if (lastClientX === null) return;
+    if (e.pointerId !== activePointerId || lastClientX === null) return;
     target += (e.clientX - lastClientX) * scale();
     lastClientX = e.clientX;
   });
-  const end = () => {
+  const end = (e: PointerEvent) => {
+    if (e.pointerId !== activePointerId) return;
+    activePointerId = null;
     lastClientX = null;
   };
   el.addEventListener('pointerup', end);
@@ -35,6 +40,7 @@ export function attachDrag(
     reset(x: number) {
       target = x;
       lastClientX = null;
+      activePointerId = null;
     },
   };
 }

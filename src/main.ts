@@ -54,6 +54,7 @@ async function share(): Promise<void> {
 
 const ui = createUI(uiRoot, {
   onPlay() {
+    sfx.unlock();
     rng = mulberry32(Date.now() >>> 0);
     world = createWorld(rng, renderer.viewHeight());
     drag.reset(TUNING.viewWidth / 2);
@@ -73,6 +74,7 @@ const ui = createUI(uiRoot, {
 });
 ui.setMuted(muted);
 ui.showMenu(best);
+app.addEventListener('pointerdown', () => sfx.unlock(), { once: true });
 
 const loop = createLoop({
   update: () => {

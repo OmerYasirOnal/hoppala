@@ -9,7 +9,11 @@ const FX: Record<SfxName, [number, number, OscillatorType]> = {
   gameover: [140, 0.4, 'sine'],
 };
 
-export function createSfx(): { play(name: SfxName): void; setMuted(b: boolean): void } {
+export function createSfx(): {
+  play(name: SfxName): void;
+  setMuted(b: boolean): void;
+  unlock(): void;
+} {
   let ctx: AudioContext | null = null;
   let muted = false;
 
@@ -25,6 +29,16 @@ export function createSfx(): { play(name: SfxName): void; setMuted(b: boolean): 
   }
 
   return {
+    /** Create/resume the context inside a user gesture (iOS requirement).
+     *  Created even while muted so a later unmute can produce sound. */
+    unlock() {
+      try {
+        ctx ??= new AudioContext();
+        if (ctx.state === 'suspended') void ctx.resume();
+      } catch {
+        /* audio unavailable — play silently */
+      }
+    },
     play(name) {
       const ac = ensure();
       if (!ac) return;
