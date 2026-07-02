@@ -5,6 +5,8 @@ climb from the ground into the stars.
 
 **Play:** https://hoppala.vercel.app — add it to your home screen, works offline.
 
+![Hoppala gameplay](docs/media/hoppala.gif)
+
 ## How it's built
 
 - Vanilla TypeScript + Canvas 2D — no game engine, **zero runtime dependencies**, < 60KB gzip.
