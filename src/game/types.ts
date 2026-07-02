@@ -8,12 +8,17 @@ export const TUNING = {
   playerR: 16,
   dt: 1 / 60,
   maxGapFactor: 0.8,
+  phantomOn: 1.6, // s visible per cycle
+  phantomOff: 0.9, // s invisible per cycle
+  boostVy: -1400, // px/s driven during a jetpack boost
+  boostDuration: 1.2, // s
+  pickupR: 12,
 } as const;
 
 /** Peak height of a normal bounce: v² / 2g ≈ 250.6 px. */
 export const JUMP_HEIGHT = (TUNING.bounceVy * TUNING.bounceVy) / (2 * TUNING.gravity);
 
-export type PlatformKind = 'static' | 'moving' | 'crumbling' | 'spring';
+export type PlatformKind = 'static' | 'moving' | 'crumbling' | 'spring' | 'phantom';
 
 export interface Platform {
   id: number;
@@ -34,13 +39,22 @@ export interface Player {
   vy: number;
   prevX: number;
   prevY: number;
+  boostT: number; // remaining jetpack time; 0 = normal physics
 }
 
-export type SimEvent = 'bounce' | 'spring' | 'break' | 'gameover';
+export interface Pickup {
+  id: number;
+  x: number;
+  y: number; // center (world y-down)
+  taken: boolean;
+}
+
+export type SimEvent = 'bounce' | 'spring' | 'break' | 'boost' | 'gameover';
 
 export interface World {
   player: Player;
   platforms: Platform[];
+  pickups: Pickup[];
   cameraY: number; // world y of the viewport top
   prevCameraY: number;
   viewHeight: number;

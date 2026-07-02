@@ -28,6 +28,7 @@ const PLATFORM_COLORS: Record<Platform['kind'], string> = {
   moving: '#6db7ff',
   crumbling: '#c9a06b',
   spring: '#7ee08a',
+  phantom: '#e08ad0',
 };
 
 export function createRenderer(canvas: HTMLCanvasElement): {

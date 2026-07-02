@@ -1,10 +1,11 @@
-type SfxName = 'bounce' | 'spring' | 'break' | 'record' | 'gameover';
+type SfxName = 'bounce' | 'spring' | 'break' | 'boost' | 'record' | 'gameover';
 
 /** [frequency Hz, duration s, type] per effect — synthesized, no audio files. */
 const FX: Record<SfxName, [number, number, OscillatorType]> = {
   bounce: [420, 0.07, 'square'],
   spring: [660, 0.16, 'square'],
   break: [180, 0.12, 'sawtooth'],
+  boost: [880, 0.1, 'sine'],
   record: [880, 0.25, 'triangle'],
   gameover: [140, 0.4, 'sine'],
 };

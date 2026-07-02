@@ -32,8 +32,10 @@ export function createWorld(rng: Rng, viewHeight: number): World {
       vy: TUNING.bounceVy,
       prevX: TUNING.viewWidth / 2,
       prevY: startY,
+      boostT: 0,
     },
     platforms: [start],
+    pickups: [],
     // places the start platform ~60% down the view; the follow rule takes over from the first step
     cameraY: startCameraY,
     prevCameraY: startCameraY,
