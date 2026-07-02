@@ -25,7 +25,7 @@ pnpm only. `pnpm dev` · `pnpm test` (Vitest) · `pnpm build` (`tsc --noEmit && 
 
 ## v1 non-goals (do not add without a new spec round)
 
-Online leaderboard, accounts, coins/cosmetics, enemies, daily seed, app-store packaging, analytics, ads, background music.
+Online leaderboard, accounts, coins/cosmetics, enemies, analytics, ads, background music. (Daily mode shipped in v0.2.0; app-store packaging is active sub-project B.)
 
 ## Related
 
