@@ -11,9 +11,12 @@ const app = document.getElementById('app') as HTMLElement;
 
 const renderer = createRenderer(canvas);
 renderer.resize();
-window.addEventListener('resize', () => renderer.resize());
+window.addEventListener('resize', () => {
+  renderer.resize();
+  world.viewHeight = renderer.viewHeight();
+});
 
-const drag = attachDrag(app, TUNING.viewWidth);
+const drag = attachDrag(app, TUNING.viewWidth, canvas);
 
 let rng: Rng = mulberry32(Date.now() >>> 0);
 let world: World = createWorld(rng, renderer.viewHeight());

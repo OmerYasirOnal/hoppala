@@ -1,13 +1,16 @@
 /** Relative-drag steering: the finger moves the target by its delta —
- *  it never needs to sit on the character. 1:1 in logical pixels. */
+ *  it never needs to sit on the character. 1:1 in logical pixels,
+ *  measured against the RENDERED canvas width (measureEl), which is
+ *  narrower than the drag surface whenever the viewport is letterboxed. */
 export function attachDrag(
   el: HTMLElement,
   logicalWidth: number,
+  measureEl: HTMLElement = el,
 ): { targetX(): number; reset(x: number): void } {
   let target = logicalWidth / 2;
   let lastClientX: number | null = null;
 
-  const scale = () => logicalWidth / el.clientWidth;
+  const scale = () => logicalWidth / measureEl.clientWidth;
 
   el.addEventListener('pointerdown', (e) => {
     lastClientX = e.clientX;
