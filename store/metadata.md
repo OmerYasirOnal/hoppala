@@ -10,9 +10,9 @@ below claims a feature that isn't in the README or the game source
 
 ## Turkish (tr)
 
-**App name:** Hoppala
+**App name:** Hoppala: Zıpla ve Tırman
 
-**Subtitle (30 char max):** Zıpla, tırman, paylaş
+**Subtitle (30 char max):** Hayalet platformlara dikkat!
 
 **Promotional text (170 char max):**
 Sonsuz zıplayan bir platform oyunu: sürükleyerek yönlendir, hayalet
@@ -49,9 +49,9 @@ Kayıt yok, reklam yok, izinsiz veri toplama yok — sadece zıpla ve tırman.
 
 ## English (en)
 
-**App name:** Hoppala
+**App name:** Hoppala: Zıpla ve Tırman
 
-**Subtitle (30 char max):** Jump, climb, share
+**Subtitle (30 char max):** Mind the phantom platforms!
 
 **Promotional text (170 char max):**
 An endless vertical jumper: drag to steer, dodge phantom platforms, grab a
@@ -83,6 +83,8 @@ jump and climb.
 **Keywords (≤100 char):**
 `jumper,platformer,climber,drag steer,arcade,daily,leaderboard,jetpack,offline,record,tower,endless`
 (98 characters)
+
+**Note:** The App Store listing name is "Hoppala: Zıpla ve Tırman" (per ASC record). The device display name and app icon remain "Hoppala" (shorter CFBundleDisplayName for home screen).
 
 ---
 
@@ -157,6 +159,18 @@ size).
 | 3 | `03-boost-1290x2796.png` | 1290×2796 | Web build via CDP, same viewport as #2 | A boost moment: the player sits on a jetpack pickup with the flame sprite rendered (`world.player.boostT > 0` render path in `src/render/renderer.ts`) at 4082m. |
 | 4 | `04-gameover-share-1290x2796.png` | 1290×2796 | Web build via CDP, same viewport as #2 | Game-over / share screen: final score (133m), best-score line, "Again" and "Share" buttons — the real `ui.showGameOver()` render path. |
 | 5 | `05-daily-badge-1290x2796.png` | 1290×2796 | Web build via CDP, same viewport as #2 | Daily mode HUD early in a run: score "37 m" plus the `#183` day badge (`#daybadge` element, real daily-mode identity from `src/core/daily.ts`). |
+
+### 6.5-inch variant set (ASC 1284×2778 bucket)
+
+Derived from the above originals using center-crop resize (sharp with `fit: 'cover'`). Stored in `store/screenshots/65in/`:
+
+| # | File | Resolution | Derived from |
+|---|---|---|---|
+| 1 | `01-menu-1284x2778.png` | 1284×2778 | Original `01-menu-1320x2868.png` (1320×2868) |
+| 2 | `02-midrun-phantoms-1284x2778.png` | 1284×2778 | Original `02-midrun-phantoms-1290x2796.png` (1290×2796) |
+| 3 | `03-boost-1284x2778.png` | 1284×2778 | Original `03-boost-1290x2796.png` (1290×2796) |
+| 4 | `04-gameover-share-1284x2778.png` | 1284×2778 | Original `04-gameover-share-1290x2796.png` (1290×2796) |
+| 5 | `05-daily-badge-1284x2778.png` | 1284×2778 | Original `05-daily-badge-1290x2796.png` (1290×2796) |
 
 ### How gameplay states were reached (web build, CDP)
 
