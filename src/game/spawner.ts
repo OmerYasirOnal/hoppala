@@ -1,5 +1,5 @@
 import type { Rng } from '../core/rng';
-import { JUMP_HEIGHT, TUNING, type Platform, type PlatformKind } from './types';
+import { JUMP_HEIGHT, TUNING, type Platform, type PlatformKind, type Pickup } from './types';
 
 export interface Difficulty {
   gapMin: number;
@@ -9,9 +9,14 @@ export interface Difficulty {
   springRatio: number;
   platformW: number;
   moveSpeed: number;
+  phantomRatio: number;
 }
 
 const MAX_GAP = TUNING.maxGapFactor * JUMP_HEIGHT;
+const BOOST_RATIO = 0.03;
+const BOOST_MIN_ALTITUDE = 2000;
+const PHANTOM_OFFSET_MIN = 0.35;
+const PHANTOM_OFFSET_SPAN = 0.3;
 
 /** Altitude-driven difficulty. Monotonic by construction; every gap ≤ MAX_GAP. */
 export function difficultyAt(altitude: number): Difficulty {
@@ -23,7 +28,8 @@ export function difficultyAt(altitude: number): Difficulty {
   const springRatio = a < 800 ? 0 : 0.06;
   const platformW = Math.max(56, TUNING.platformW - a * 0.0012);
   const moveSpeed = 1.2 + Math.min(1.8, a * 0.0002);
-  return { gapMin, gapMax, movingRatio, crumblingRatio, springRatio, platformW, moveSpeed };
+  const phantomRatio = a < 5000 ? 0 : Math.min(0.25, ((a - 5000) / 10000) * 0.25);
+  return { gapMin, gapMax, movingRatio, crumblingRatio, springRatio, platformW, moveSpeed, phantomRatio };
 }
 
 function pickKind(d: Difficulty, r: number): PlatformKind {
@@ -48,4 +54,49 @@ export function nextPlatform(prevY: number, altitude: number, rng: Rng, id: numb
   }
   const x = w / 2 + rng() * (TUNING.viewWidth - w);
   return { id, kind, x, y, w, baseX: x, amp: 0, speed: 0, phase: 0, broken: false };
+}
+
+/**
+ * Optional extras around a freshly spawned main-chain platform. Phantoms are
+ * additional hazards/opportunities — never part of the guaranteed chain — and
+ * boost pickups sit on top of static chain platforms.
+ */
+export function spawnExtras(
+  mainPlat: Platform,
+  prevY: number,
+  altitude: number,
+  rng: Rng,
+  phantomId: number,
+  pickupId: number,
+): { phantom: Platform | null; pickup: Pickup | null } {
+  const d = difficultyAt(altitude);
+  let phantom: Platform | null = null;
+  if (d.phantomRatio > 0 && rng() < d.phantomRatio) {
+    const lastGap = prevY - mainPlat.y;
+    const y = prevY - lastGap * (PHANTOM_OFFSET_MIN + rng() * PHANTOM_OFFSET_SPAN);
+    const w = d.platformW;
+    const x = w / 2 + rng() * (TUNING.viewWidth - w);
+    phantom = {
+      id: phantomId,
+      kind: 'phantom',
+      x,
+      y,
+      w,
+      baseX: x,
+      amp: 0,
+      speed: 0,
+      phase: rng() * (TUNING.phantomOn + TUNING.phantomOff),
+      broken: false,
+    };
+  }
+  let pickup: Pickup | null = null;
+  if (mainPlat.kind === 'static' && altitude >= BOOST_MIN_ALTITUDE && rng() < BOOST_RATIO) {
+    pickup = {
+      id: pickupId,
+      x: mainPlat.x,
+      y: mainPlat.y - TUNING.pickupR - 4,
+      taken: false,
+    };
+  }
+  return { phantom, pickup };
 }

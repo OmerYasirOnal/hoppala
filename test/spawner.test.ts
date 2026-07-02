@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { mulberry32 } from '../src/core/rng';
-import { difficultyAt, nextPlatform } from '../src/game/spawner';
-import { JUMP_HEIGHT, TUNING } from '../src/game/types';
+import { difficultyAt, nextPlatform, spawnExtras } from '../src/game/spawner';
+import { JUMP_HEIGHT, TUNING, type Pickup } from '../src/game/types';
 
 describe('difficultyAt', () => {
   const samples = Array.from({ length: 41 }, (_, i) => i * 500); // 0..20000 px
@@ -69,5 +69,81 @@ describe('nextPlatform', () => {
     const kinds = new Set<string>();
     for (let i = 0; i < 400; i++) kinds.add(nextPlatform(0, 12000, rng, i).kind);
     expect(kinds).toEqual(new Set(['static', 'moving', 'crumbling', 'spring']));
+  });
+});
+
+describe('phantom difficulty', () => {
+  it('ramps phantomRatio monotonically from 5000px, capped at 0.25', () => {
+    expect(difficultyAt(4900).phantomRatio).toBe(0);
+    expect(difficultyAt(6000).phantomRatio).toBeGreaterThan(0);
+    let prev = 0;
+    for (let a = 0; a <= 20000; a += 500) {
+      const r = difficultyAt(a).phantomRatio;
+      expect(r).toBeGreaterThanOrEqual(prev);
+      expect(r).toBeLessThanOrEqual(0.25);
+      prev = r;
+    }
+  });
+
+  it('keeps the main chain solid: nextPlatform never yields a phantom', () => {
+    const rng = mulberry32(77);
+    for (let i = 0; i < 600; i++) {
+      expect(nextPlatform(0, 20000, rng, i).kind).not.toBe('phantom');
+    }
+  });
+});
+
+describe('spawnExtras', () => {
+  const main = (y: number, kind: 'static' | 'spring' = 'static') => ({
+    id: 1, kind, x: 200, y, w: 68, baseX: 200, amp: 0, speed: 0, phase: 0, broken: false,
+  });
+
+  it('places phantoms inside the viewport at 0.35–0.65 of the last gap', () => {
+    const rng = mulberry32(5);
+    let seen = 0;
+    for (let i = 0; i < 400 && seen < 30; i++) {
+      const prevY = 0;
+      const m = main(-150); // last gap = 150
+      const { phantom } = spawnExtras(m, prevY, 20000, rng, 1000 + i, 2000 + i);
+      if (!phantom) continue;
+      seen++;
+      expect(phantom.kind).toBe('phantom');
+      const offset = prevY - phantom.y;
+      expect(offset).toBeGreaterThanOrEqual(150 * 0.35 - 1e-9);
+      expect(offset).toBeLessThanOrEqual(150 * 0.65 + 1e-9);
+      expect(phantom.x - phantom.w / 2).toBeGreaterThanOrEqual(-1e-9);
+      expect(phantom.x + phantom.w / 2).toBeLessThanOrEqual(400 + 1e-9);
+    }
+    expect(seen).toBeGreaterThan(0);
+  });
+
+  it('never spawns phantoms below the 5000px onset', () => {
+    const rng = mulberry32(6);
+    for (let i = 0; i < 300; i++) {
+      expect(spawnExtras(main(-150), 0, 4000, rng, i, i).phantom).toBeNull();
+    }
+  });
+
+  it('spawns boost pickups only on static platforms, from 2000px, centered on top', () => {
+    const rngNever = mulberry32(9);
+    for (let i = 0; i < 300; i++) {
+      expect(spawnExtras(main(-150, 'spring'), 0, 20000, rngNever, i, i).pickup).toBeNull();
+    }
+    const rng = mulberry32(10);
+    let found = 0;
+    for (let i = 0; i < 600 && found < 5; i++) {
+      const m = main(-150);
+      const { pickup } = spawnExtras(m, 0, 3000, rng, i, 5000 + i);
+      if (!pickup) continue;
+      found++;
+      expect(pickup.x).toBe(m.x);
+      expect(pickup.y).toBeLessThan(m.y);
+      expect(pickup.taken).toBe(false);
+    }
+    expect(found).toBeGreaterThan(0);
+    const rngLow = mulberry32(11);
+    for (let i = 0; i < 300; i++) {
+      expect(spawnExtras(main(-150), 0, 1500, rngLow, i, i).pickup).toBeNull();
+    }
   });
 });
