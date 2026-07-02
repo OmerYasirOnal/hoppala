@@ -1,0 +1,36 @@
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { height: 100%; background: #0b1220; overscroll-behavior: none; }
+#app {
+  position: fixed; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  height: 100dvh;
+  touch-action: none; user-select: none; -webkit-user-select: none;
+}
+#game { display: block; background: #0b1220; }
+#ui {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 14px; pointer-events: none;
+  color: #f2f6ff; font-family: system-ui, -apple-system, sans-serif; text-align: center;
+}
+#ui .hud {
+  position: absolute; top: max(12px, env(safe-area-inset-top)); left: 0; right: 0;
+  display: flex; justify-content: center; font-weight: 700; font-size: 22px;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.4);
+}
+#ui h1 { font-size: 42px; letter-spacing: 1px; }
+#ui .panel { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+#ui .score-big { font-size: 34px; font-weight: 800; }
+#ui .sub { opacity: 0.8; font-size: 15px; }
+#ui button {
+  pointer-events: auto; border: 0; border-radius: 999px;
+  padding: 12px 32px; font-size: 17px; font-weight: 700; cursor: pointer;
+  background: #7ee08a; color: #06240c;
+}
+#ui button.ghost { background: rgba(255,255,255,0.14); color: #f2f6ff; }
+#ui .mute {
+  position: absolute; top: max(10px, env(safe-area-inset-top)); right: 12px;
+  background: transparent; font-size: 22px; padding: 6px;
+}
+#ui .toast { position: absolute; bottom: 15%; font-size: 14px; opacity: 0.9; }
+.hidden { display: none !important; }
