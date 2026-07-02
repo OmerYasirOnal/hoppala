@@ -4,7 +4,7 @@ export type GameMode = 'free' | 'daily';
 
 /** Seam for sub-project B (Capacitor): haptics + Game Center attach here. */
 export interface PlatformBridge {
-  onEvent(event: SimEvent): void;
+  onEvent(event: SimEvent | 'record'): void;
   submitScore(score: number, mode: GameMode, day?: number): void;
   showLeaderboard?(): void;
 }

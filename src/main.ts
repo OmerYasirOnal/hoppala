@@ -123,6 +123,7 @@ const loop = createLoop({
     if (!recordCelebrated && runBestBaseline > 0 && m > runBestBaseline) {
       recordCelebrated = true;
       sfx.play('record');
+      bridge.onEvent('record');
     }
     if (world.over) {
       playing = false;
