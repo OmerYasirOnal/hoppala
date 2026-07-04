@@ -127,4 +127,14 @@ describe('createOnline', () => {
     await online.init();
     expect(make).toHaveBeenCalledTimes(1);
   });
+
+  it('a synchronous throw from the backend still degrades to the queue', async () => {
+    const backend = fakeBackend({ submitScore: () => { throw new Error('sync'); } });
+    const { deps, q } = fakeDeps({ makeBackend: async () => backend });
+    const online = createOnline(deps);
+    await online.init();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(() => online.submit('global', 42)).not.toThrow();
+    expect(q).toEqual([{ board: 'global', score: 42 }]);
+  });
 });

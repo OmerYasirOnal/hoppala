@@ -77,10 +77,14 @@ export function createOnline(deps: OnlineDeps): Online {
     },
 
     submit(board, score): void {
-      if (backend && ready && name) {
-        backend.submitScore(board, name, score).catch(() => deps.enqueue(board, score));
-      } else {
-        deps.enqueue(board, score);
+      try {
+        if (backend && ready && name) {
+          backend.submitScore(board, name, score).catch(() => deps.enqueue(board, score));
+        } else {
+          deps.enqueue(board, score);
+        }
+      } catch {
+        deps.enqueue(board, score); // a synchronous throw from the backend still degrades to the queue
       }
     },
 
@@ -128,7 +132,13 @@ export function createOnline(deps: OnlineDeps): Online {
     },
 
     pushBest(best): void {
-      if (backend && ready) backend.saveCloudSave({ best }).catch(() => {});
+      if (backend && ready) {
+        try {
+          backend.saveCloudSave({ best }).catch(() => {});
+        } catch {
+          /* synchronous throw — ignore; pushBest is best-effort */
+        }
+      }
     },
 
     flush(): void {
