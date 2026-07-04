@@ -10,6 +10,13 @@ import { createUI, t } from './ui/screens';
 import { loadSave, saveBest, saveMuted, saveDailyBest } from './storage';
 import { dayNumber, dateKey, runIdentity, type RunIdentity } from './core/daily';
 import { bridge, type GameMode } from './platform/bridge';
+import { online } from './online';
+import { boardForRun, formatRank } from './online/rank';
+import { renderLeaderboard, type LeaderboardView } from './ui/leaderboard';
+import { askNickname } from './ui/nickname';
+import { renderSettings } from './ui/settings';
+import { saveName, saveOnboarded, saveLang, saveHaptics, resetSave } from './storage';
+import { lang, setLang } from './ui/screens';
 
 const canvas = document.getElementById('game') as HTMLCanvasElement;
 const app = document.getElementById('app') as HTMLElement;
@@ -35,10 +42,15 @@ let muted = save.muted;
 let best = save.best;
 sfx.setMuted(muted);
 
+const isNative = 'Capacitor' in window;
+const uiLang: 'tr' | 'en' = save.lang === 'tr' || save.lang === 'en' ? save.lang : lang();
+setLang(uiLang); // re-point the string table to the persisted override before createUI/showMenu run
+
 let rng: Rng = mulberry32(Date.now() >>> 0);
 let world: World = createWorld(rng, renderer.viewHeight());
 let playing = false;
 let recordCelebrated = false;
+let firstRun = !save.onboarded;
 let mode: GameMode = 'free';
 /** Snapshot of the daily run's identity, captured once at play start. Null in free mode. */
 let runId: RunIdentity | null = null;
@@ -72,6 +84,40 @@ async function share(): Promise<void> {
   }
 }
 
+let cachedGlobal: LeaderboardView['rows'] = [];
+let cachedDaily: LeaderboardView['rows'] = [];
+
+async function openLeaderboard(initialTab: 'global' | 'daily' = mode === 'daily' ? 'daily' : 'global'): Promise<void> {
+  let tab = initialTab;
+  const draw = async (loading: boolean): Promise<void> => {
+    const todayKey = dateKey(new Date());
+    const board = tab === 'global' ? 'global' : boardForRun('daily', todayKey);
+    const myScore = tab === 'global' ? best : dailyBestFor(todayKey);
+    const offline = !online.ready();
+    const rows = loading ? (tab === 'global' ? cachedGlobal : cachedDaily) : await online.top(board, 100);
+    if (!loading) {
+      if (tab === 'global') cachedGlobal = rows;
+      else cachedDaily = rows;
+    }
+    const meUid = online.uid();
+    let me: LeaderboardView['me'] = null;
+    // Pinned "you" row when the player has a score — highlights their standing even outside the top-100.
+    if (!loading && myScore > 0 && online.name()) {
+      const r = await online.myRank(board, myScore);
+      if (r) me = { rank: r.rank, name: online.name()!, score: myScore };
+    }
+    const view: LeaderboardView = {
+      tab, rows, meUid, me, offline, loading,
+      onTab: (next) => { tab = next; void draw(true).then(() => draw(false)); },
+      onRefresh: () => void draw(true).then(() => draw(false)),
+      onClose: () => {},
+    };
+    renderLeaderboard(uiRoot, view);
+  };
+  await draw(true);
+  await draw(false);
+}
+
 const ui = createUI(uiRoot, {
   onPlay(m: GameMode) {
     sfx.unlock();
@@ -91,6 +137,11 @@ const ui = createUI(uiRoot, {
     recordCelebrated = false;
     playing = true;
     ui.showHud(m === 'daily' ? { day: runId!.day } : undefined);
+    if (firstRun) {
+      firstRun = false;
+      saveOnboarded();
+      ui.showOnboardingTip();
+    }
   },
   onShare() {
     void share();
@@ -101,6 +152,22 @@ const ui = createUI(uiRoot, {
     saveMuted(muted);
     return muted;
   },
+  onLeaderboard() {
+    void online.ensureName((s) => askNickname(uiRoot, s)).then(() => openLeaderboard());
+  },
+  onSettings() {
+    const s = loadSave();
+    renderSettings(uiRoot, {
+      muted, haptics: s.haptics ?? true, lang: s.lang ?? 'system', name: online.name(), native: isNative, version: '1.2.0',
+    }, {
+      onMute: (m) => { muted = m; sfx.setMuted(m); saveMuted(m); ui.setMuted(m); },
+      onHaptics: (on) => saveHaptics(on),
+      onLang: (l) => { saveLang(l); location.reload(); }, // reload re-renders every screen in the new language
+      onEditName: () => { void online.ensureName((sg) => askNickname(uiRoot, sg)); },
+      onReset: () => { resetSave(); location.reload(); },
+      onClose: () => {},
+    });
+  },
 });
 ui.setMuted(muted);
 ui.showMenu(best, { day: dayNumber(new Date()), best: dailyBestFor(dateKey(new Date())) });
@@ -109,6 +176,16 @@ app.addEventListener('pointerdown', () => sfx.unlock(), { once: true });
 if ('Capacitor' in window) {
   void import('./platform/capacitor').then((m) => m.install()).catch(() => {});
 }
+
+void online.init().then(async () => {
+  if (playing || best <= 0) return;              // don't disturb an in-progress run
+  const r = await online.myRank('global', best);
+  if (r && !playing) {
+    ui.showMenu(best, { day: dayNumber(new Date()), best: dailyBestFor(dateKey(new Date())) }, formatRank(r, uiLang));
+  }
+});
+
+window.addEventListener('online', () => void online.init()); // retry auth if needed, then flush queued scores
 
 const loop = createLoop({
   update: () => {
@@ -135,12 +212,14 @@ const loop = createLoop({
       }
       if (mode === 'daily' && runId && isRecord) saveDailyBest(runId.key, m);
       bridge.submitScore(m, mode, runId?.day);
-      ui.showGameOver(
-        m,
-        best,
-        isRecord,
-        mode === 'daily' && runId ? { day: runId.day, best: Math.max(runBestBaseline, m) } : undefined,
-      );
+      const board = boardForRun(mode, runId?.key);
+      const daily = mode === 'daily' && runId ? { day: runId.day, best: Math.max(runBestBaseline, m) } : undefined;
+      ui.showGameOver(m, best, isRecord, daily);         // instant
+      online.submit(board, m);
+      if (mode === 'free' && isRecord) online.pushBest(m);
+      void online.myRank(board, m).then((r) => {
+        if (r) ui.showGameOver(m, best, isRecord, daily, formatRank(r, uiLang)); // upgrade with rank
+      });
     }
   },
   render: (alpha) => renderer.draw(world, alpha),
