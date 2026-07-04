@@ -5,9 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build",
+    "build": "tsc --noEmit && vite build && node scripts/check-bundle-size.mjs",
     "preview": "vite preview",
     "test": "vitest run --passWithNoTests",
+    "check:size": "node scripts/check-bundle-size.mjs",
     "icons": "node scripts/build-icons.mjs",
     "cap:sync": "pnpm build && cap sync ios"
   },
