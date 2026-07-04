@@ -70,7 +70,7 @@ export function createOnline(deps: OnlineDeps): Online {
         const merged = mergeCloudSave(local, remote);
         deps.setLocalSave(merged);
         name = merged.name || null;
-        if (name) await backend.saveCloudSave(merged);
+        if (name) void backend.saveCloudSave(merged).catch(() => {});
       } catch {
         /* leave `ready` true — degrade only cloud save, not the whole online layer */
       }
@@ -150,7 +150,7 @@ export function createOnline(deps: OnlineDeps): Online {
     },
 
     pushBest(best): void {
-      if (backend && ready) {
+      if (backend && ready && name) {
         try {
           backend.saveCloudSave({ best }).catch(() => {});
         } catch {

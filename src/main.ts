@@ -90,6 +90,7 @@ let cachedDaily: LeaderboardView['rows'] = [];
 
 async function openLeaderboard(initialTab: 'global' | 'daily' = mode === 'daily' ? 'daily' : 'global'): Promise<void> {
   let tab = initialTab;
+  let closed = false;
   const draw = async (loading: boolean): Promise<void> => {
     const todayKey = dateKey(new Date());
     const board = tab === 'global' ? 'global' : boardForRun('daily', todayKey);
@@ -107,11 +108,12 @@ async function openLeaderboard(initialTab: 'global' | 'daily' = mode === 'daily'
       const r = await online.myRank(board, myScore);
       if (r) me = { rank: r.rank, name: online.name()!, score: myScore };
     }
+    if (closed) return;
     const view: LeaderboardView = {
       tab, rows, meUid, me, offline, loading,
       onTab: (next) => { tab = next; void draw(true).then(() => draw(false)); },
       onRefresh: () => void draw(true).then(() => draw(false)),
-      onClose: () => {},
+      onClose: () => { closed = true; },
     };
     renderLeaderboard(uiRoot, view);
   };
@@ -219,11 +221,14 @@ const loop = createLoop({
       ui.showGameOver(m, best, isRecord, daily);         // instant
       online.submit(board, m);
       if (mode === 'free' && isRecord) online.pushBest(m);
-      void online.myRank(board, m).then((r) => {
-        if (r && gen === overGen && !playing) {
-          ui.showGameOver(m, best, isRecord, daily, formatRank(r, uiLang)); // upgrade with rank
-        }
-      });
+      if (online.enabled()) {
+        void online.myRank(board, m).then((r) => {
+          if (gen !== overGen || playing) return; // player already moved on
+          const named = !!online.name();
+          const rankStr = named && r ? `${formatRank(r, uiLang)} ${t.players}` : t.syncPending;
+          ui.showGameOver(m, best, isRecord, daily, rankStr);
+        });
+      }
     }
   },
   render: (alpha) => renderer.draw(world, alpha),
