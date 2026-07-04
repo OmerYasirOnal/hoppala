@@ -149,3 +149,20 @@ export function createOnline(deps: OnlineDeps): Online {
     enabled: () => deps.enabled,
   };
 }
+
+import { enqueue, drain } from './queue';
+import { suggestName } from './nickname';
+import { toCloudSave, writeCloudSave } from '../storage';
+import { firebaseConfig, configured } from './config';
+
+/** App-wide singleton wired to the real Firebase backend (lazy chunk). */
+export const online: Online = createOnline({
+  enabled: configured,
+  makeBackend: async () => (await import('./firebase')).createFirebaseBackend(firebaseConfig),
+  getLocalSave: toCloudSave,
+  setLocalSave: writeCloudSave,
+  enqueue,
+  drain,
+  now: () => Date.now(),
+  suggest: () => suggestName(Math.random),
+});

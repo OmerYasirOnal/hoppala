@@ -1,0 +1,24 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function validName(n) { return n is string && n.size() >= 3 && n.size() <= 16; }
+    function validScore(s) { return s is int && s >= 0 && s <= 100000; }
+
+    match /users/{uid} {
+      allow read:  if request.auth != null && request.auth.uid == uid;
+      allow write: if request.auth != null && request.auth.uid == uid
+                   && validName(request.resource.data.name)
+                   && validScore(request.resource.data.best)
+                   && (resource == null || request.resource.data.best >= resource.data.best);
+    }
+
+    match /scores/{board}/entries/{uid} {
+      allow read:   if true;
+      allow create: if request.auth != null && request.auth.uid == uid
+                    && validName(request.resource.data.name) && validScore(request.resource.data.score);
+      allow update: if request.auth != null && request.auth.uid == uid
+                    && validName(request.resource.data.name) && validScore(request.resource.data.score)
+                    && request.resource.data.score > resource.data.score;
+    }
+  }
+}
