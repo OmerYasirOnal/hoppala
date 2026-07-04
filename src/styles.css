@@ -35,3 +35,39 @@ html, body { height: 100%; background: #0b1220; overscroll-behavior: none; }
 #ui .toast { position: absolute; bottom: 15%; font-size: 14px; opacity: 0.9; }
 #ui .daybadge { margin-left: 10px; opacity: 0.75; font-size: 15px; }
 .hidden { display: none !important; }
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(4, 8, 18, 0.72);
+  z-index: 20;
+  padding: 20px;
+}
+.modal {
+  background: #121a2c;
+  border: 1px solid #22304d;
+  border-radius: 16px;
+  padding: 20px;
+  width: min(340px, 100%);
+  color: #eaf0ff;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+}
+.modal h2 { margin: 0 0 14px; font-size: 18px; }
+.nick-input {
+  width: 100%;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid #2b3b5c;
+  background: #0c1322;
+  color: #eaf0ff;
+  font-size: 16px;
+}
+.nick-error { color: #ff8a8a; font-size: 13px; margin-top: 8px; }
+.modal-actions { display: flex; gap: 10px; margin-top: 16px; }
+.modal-actions button { flex: 1; }
+.modal .row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #1c273f; }
+.modal .row:last-of-type { border-bottom: none; }
+.modal .dim { color: #8ea0c4; }
+button.danger { color: #ff8a8a; }

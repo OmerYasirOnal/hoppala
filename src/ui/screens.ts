@@ -1,15 +1,36 @@
 import type { GameMode } from '../platform/bridge';
 
 const STRINGS = {
-  tr: { title: 'Hoppala', play: 'Başla', again: 'Tekrar', share: 'Paylaş', best: 'Rekor', record: 'Yeni rekor!', copied: 'Kopyalandı!', hint: 'Sürükleyerek yönlendir', free: 'Serbest', daily: 'Günlük', dailyBest: 'Günün rekoru' },
-  en: { title: 'Hoppala', play: 'Play', again: 'Again', share: 'Share', best: 'Best', record: 'New record!', copied: 'Copied!', hint: 'Drag to steer', free: 'Free', daily: 'Daily', dailyBest: "Today's best" },
+  tr: {
+    title: 'Hoppala', play: 'Başla', again: 'Tekrar', share: 'Paylaş', best: 'Rekor', record: 'Yeni rekor!',
+    copied: 'Kopyalandı!', hint: 'Sürükleyerek yönlendir', free: 'Serbest', daily: 'Günlük', dailyBest: 'Günün rekoru',
+    leaderboard: 'Sıralama', global: 'Global', rank: 'Sıralaman', players: 'oyuncu', syncPending: 'senkron bekliyor',
+    settings: 'Ayarlar', sound: 'Ses', haptics: 'Titreşim', language: 'Dil', system: 'Sistem', nickname: 'Takma ad',
+    enterName: 'Takma adını seç', save: 'Kaydet', cancel: 'Vazgeç', reset: 'Verileri sıfırla',
+    resetConfirm: 'Tüm veriler silinsin mi?', offline: 'çevrimdışı', refresh: 'Yenile', loading: 'Yükleniyor…',
+    close: 'Kapat', you: 'Sen', version: 'Sürüm', credits: 'Künye', invalidName: '3–16 karakter, uygun bir ad gir',
+  },
+  en: {
+    title: 'Hoppala', play: 'Play', again: 'Again', share: 'Share', best: 'Best', record: 'New record!',
+    copied: 'Copied!', hint: 'Drag to steer', free: 'Free', daily: 'Daily', dailyBest: "Today's best",
+    leaderboard: 'Leaderboard', global: 'Global', rank: 'Your rank', players: 'players', syncPending: 'sync pending',
+    settings: 'Settings', sound: 'Sound', haptics: 'Haptics', language: 'Language', system: 'System', nickname: 'Nickname',
+    enterName: 'Pick your nickname', save: 'Save', cancel: 'Cancel', reset: 'Reset data',
+    resetConfirm: 'Erase all data?', offline: 'offline', refresh: 'Refresh', loading: 'Loading…',
+    close: 'Close', you: 'You', version: 'Version', credits: 'Credits', invalidName: 'Enter a valid 3–16 char name',
+  },
 } as const;
 
 export function lang(): 'tr' | 'en' {
   return navigator.language?.toLowerCase().startsWith('tr') ? 'tr' : 'en';
 }
 
-export const t = STRINGS[lang()];
+export let t = STRINGS[lang()];
+
+/** Re-point the active string table. Called at boot from the saved override (main.ts). */
+export function setLang(l: 'tr' | 'en'): void {
+  t = STRINGS[l];
+}
 
 export function createUI(
   root: HTMLElement,
