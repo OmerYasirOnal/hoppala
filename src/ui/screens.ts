@@ -34,14 +34,15 @@ export function setLang(l: 'tr' | 'en'): void {
 
 export function createUI(
   root: HTMLElement,
-  handlers: { onPlay(mode: GameMode): void; onShare(): void; onToggleMute(): boolean },
+  handlers: { onPlay(mode: GameMode): void; onShare(): void; onToggleMute(): boolean; onLeaderboard(): void; onSettings(): void },
 ): {
-  showMenu(best: number, daily: { day: number; best: number }): void;
-  showGameOver(score: number, best: number, isRecord: boolean, daily?: { day: number; best: number }): void;
+  showMenu(best: number, daily: { day: number; best: number }, rank?: string): void;
+  showGameOver(score: number, best: number, isRecord: boolean, daily?: { day: number; best: number }, rank?: string): void;
   showHud(daily?: { day: number }): void;
   setScore(m: number): void;
   setMuted(muted: boolean): void;
   toast(msg: string): void;
+  showOnboardingTip(): void;
 } {
   root.innerHTML = `
     <div class="hud hidden"><span id="score">0 m</span><span id="daybadge" class="daybadge hidden"></span></div>
@@ -77,15 +78,18 @@ export function createUI(
     return b;
   }
 
-  function showMenu(best: number, daily: { day: number; best: number }): void {
+  function showMenu(best: number, daily: { day: number; best: number }, rank?: string): void {
     hud.classList.add('hidden');
     panel.classList.remove('hidden');
-    panel.innerHTML = `<h1>${t.title}</h1><div class="sub">${t.hint}</div>${best > 0 ? `<div class="sub">${t.best}: ${best} m</div>` : ''}${daily.best > 0 ? `<div class="sub">${t.dailyBest}: ${daily.best} m</div>` : ''}`;
+    const rankLine = rank ? `<div class="sub">${t.best}: ${best} m · ${rank}</div>` : best > 0 ? `<div class="sub">${t.best}: ${best} m</div>` : '';
+    panel.innerHTML = `<h1>${t.title}</h1><div class="sub">${t.hint}</div>${rankLine}${daily.best > 0 ? `<div class="sub">${t.dailyBest}: ${daily.best} m</div>` : ''}`;
     panel.append(button(t.free, false, () => handlers.onPlay('free')));
     panel.append(button(`${t.daily} #${daily.day}`, false, () => handlers.onPlay('daily')));
+    panel.append(button(`🏆 ${t.leaderboard}`, true, handlers.onLeaderboard));
+    panel.append(button(`⚙ ${t.settings}`, true, handlers.onSettings));
   }
 
-  function showGameOver(score: number, best: number, isRecord: boolean, daily?: { day: number; best: number }): void {
+  function showGameOver(score: number, best: number, isRecord: boolean, daily?: { day: number; best: number }, rank?: string): void {
     hud.classList.add('hidden');
     panel.classList.remove('hidden');
     const subLine = isRecord
@@ -93,11 +97,14 @@ export function createUI(
       : daily
         ? `<div class="sub">${t.dailyBest}: ${daily.best} m</div>`
         : `<div class="sub">${t.best}: ${best} m</div>`;
+    const rankLine = rank ? `<div class="sub">${t.rank}: ${rank}</div>` : '';
     panel.innerHTML = `
       <div class="score-big">${score} m</div>
       ${subLine}
+      ${rankLine}
     `;
     panel.append(button(t.again, false, () => handlers.onPlay(daily ? 'daily' : 'free')));
+    panel.append(button(`🏆 ${t.leaderboard}`, true, handlers.onLeaderboard));
     panel.append(button(t.share, true, handlers.onShare));
   }
 
@@ -119,6 +126,15 @@ export function createUI(
     setTimeout(() => toastEl.classList.add('hidden'), 1600);
   }
 
+  function showOnboardingTip(): void {
+    const tip = document.createElement('div');
+    tip.className = 'coach-tip';
+    tip.textContent = `${t.hint} 👆`;
+    root.append(tip);
+    setTimeout(() => tip.classList.add('fade'), 1400);
+    setTimeout(() => tip.remove(), 2400);
+  }
+
   return {
     showMenu,
     showGameOver,
@@ -130,5 +146,6 @@ export function createUI(
     },
     setMuted,
     toast,
+    showOnboardingTip,
   };
 }
