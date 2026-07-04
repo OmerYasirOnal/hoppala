@@ -137,4 +137,28 @@ describe('createOnline', () => {
     expect(() => online.submit('global', 42)).not.toThrow();
     expect(q).toEqual([{ board: 'global', score: 42 }]);
   });
+
+  it('editName re-prompts with the current name and updates it', async () => {
+    const backend = fakeBackend();
+    const { deps, save } = fakeDeps({ makeBackend: async () => backend });
+    // default getLocalSave returns name 'Neo'
+    const online = createOnline(deps);
+    await online.init();
+    let shown = '';
+    const result = await online.editName(async (current) => { shown = current; return 'Trinity'; });
+    expect(shown).toBe('Neo');
+    expect(result).toBe('Trinity');
+    expect(online.name()).toBe('Trinity');
+    expect(save.v.name).toBe('Trinity');
+  });
+
+  it('editName keeps the current name on cancel', async () => {
+    const backend = fakeBackend();
+    const { deps } = fakeDeps({ makeBackend: async () => backend });
+    const online = createOnline(deps);
+    await online.init();
+    const result = await online.editName(async () => null);
+    expect(result).toBe('Neo');
+    expect(online.name()).toBe('Neo');
+  });
 });

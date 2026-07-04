@@ -15,7 +15,7 @@ import { boardForRun, formatRank } from './online/rank';
 import { renderLeaderboard, type LeaderboardView } from './ui/leaderboard';
 import { askNickname } from './ui/nickname';
 import { renderSettings } from './ui/settings';
-import { saveName, saveOnboarded, saveLang, saveHaptics, resetSave } from './storage';
+import { saveOnboarded, saveLang, saveHaptics, resetSave } from './storage';
 import { lang, setLang } from './ui/screens';
 
 const canvas = document.getElementById('game') as HTMLCanvasElement;
@@ -50,6 +50,7 @@ let rng: Rng = mulberry32(Date.now() >>> 0);
 let world: World = createWorld(rng, renderer.viewHeight());
 let playing = false;
 let recordCelebrated = false;
+let overGen = 0;
 let firstRun = !save.onboarded;
 let mode: GameMode = 'free';
 /** Snapshot of the daily run's identity, captured once at play start. Null in free mode. */
@@ -163,7 +164,7 @@ const ui = createUI(uiRoot, {
       onMute: (m) => { muted = m; sfx.setMuted(m); saveMuted(m); ui.setMuted(m); },
       onHaptics: (on) => saveHaptics(on),
       onLang: (l) => { saveLang(l); location.reload(); }, // reload re-renders every screen in the new language
-      onEditName: () => { void online.ensureName((sg) => askNickname(uiRoot, sg)); },
+      onEditName: () => { void online.editName((current) => askNickname(uiRoot, current)); },
       onReset: () => { resetSave(); location.reload(); },
       onClose: () => {},
     });
@@ -204,6 +205,7 @@ const loop = createLoop({
     }
     if (world.over) {
       playing = false;
+      const gen = ++overGen;
       sfx.play('gameover');
       const isRecord = m > runBestBaseline;
       if (mode === 'free' && isRecord) {
@@ -218,7 +220,9 @@ const loop = createLoop({
       online.submit(board, m);
       if (mode === 'free' && isRecord) online.pushBest(m);
       void online.myRank(board, m).then((r) => {
-        if (r) ui.showGameOver(m, best, isRecord, daily, formatRank(r, uiLang)); // upgrade with rank
+        if (r && gen === overGen && !playing) {
+          ui.showGameOver(m, best, isRecord, daily, formatRank(r, uiLang)); // upgrade with rank
+        }
       });
     }
   },

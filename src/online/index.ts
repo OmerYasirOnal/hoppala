@@ -22,6 +22,7 @@ export interface Online {
   uid(): string | null;
   name(): string | null;
   ensureName(ask: (suggested: string) => Promise<string | null>): Promise<string | null>;
+  editName(ask: (current: string) => Promise<string | null>): Promise<string | null>;
   pushBest(best: number): void;
   flush(): void;
   ready(): boolean;
@@ -127,6 +128,23 @@ export function createOnline(deps: OnlineDeps): Online {
           /* best-effort */
         }
         void flushQueue();
+      })();
+      return valid;
+    },
+
+    async editName(ask): Promise<string | null> {
+      const chosen = await ask(name ?? deps.suggest());
+      const valid = chosen ? validateName(chosen) : null;
+      if (!valid) return name; // cancel / invalid keeps the current name
+      name = valid;
+      const updated: CloudSave = { ...deps.getLocalSave(), name: valid, updatedAt: deps.now() };
+      deps.setLocalSave(updated);
+      void (async () => {
+        try {
+          if (backend && ready) await backend.saveCloudSave(updated);
+        } catch {
+          /* best-effort */
+        }
       })();
       return valid;
     },
