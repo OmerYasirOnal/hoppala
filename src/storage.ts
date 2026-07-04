@@ -1,9 +1,16 @@
+import type { CloudSave } from './online/types';
+
 const KEY = 'hoppala:v1';
 
 export interface Save {
   best: number;
   muted: boolean;
   dailyBest?: { key: string; score: number };
+  name?: string;
+  onboarded?: boolean;
+  lang?: 'tr' | 'en' | 'system';
+  haptics?: boolean;
+  updatedAt?: number;
 }
 
 function read(): Save {
@@ -16,6 +23,11 @@ function read(): Save {
     if (db && typeof db === 'object' && typeof db.key === 'string' && typeof db.score === 'number') {
       save.dailyBest = { key: db.key, score: db.score };
     }
+    if (typeof v.name === 'string') save.name = v.name;
+    if (v.onboarded === true) save.onboarded = true;
+    if (v.lang === 'tr' || v.lang === 'en' || v.lang === 'system') save.lang = v.lang;
+    if (typeof v.haptics === 'boolean') save.haptics = v.haptics;
+    if (typeof v.updatedAt === 'number') save.updatedAt = v.updatedAt;
     return save;
   } catch {
     return { best: 0, muted: false };
@@ -44,4 +56,40 @@ export function saveMuted(muted: boolean): void {
 
 export function saveDailyBest(key: string, score: number): void {
   write({ ...read(), dailyBest: { key, score } });
+}
+
+export function saveName(name: string): void {
+  write({ ...read(), name, updatedAt: Date.now() });
+}
+
+export function saveOnboarded(): void {
+  write({ ...read(), onboarded: true });
+}
+
+export function saveLang(lang: 'tr' | 'en' | 'system'): void {
+  write({ ...read(), lang });
+}
+
+export function saveHaptics(on: boolean): void {
+  write({ ...read(), haptics: on });
+}
+
+export function resetSave(): void {
+  try {
+    localStorage.removeItem(KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
+/** Snapshot of the cloud-syncable fields. */
+export function toCloudSave(): CloudSave {
+  const s = read();
+  return { name: s.name ?? '', best: s.best, dailyBest: s.dailyBest, updatedAt: s.updatedAt ?? 0 };
+}
+
+/** Write an already-merged CloudSave back, preserving local-only fields (muted/onboarded/lang/haptics). */
+export function writeCloudSave(c: CloudSave): void {
+  const s = read();
+  write({ ...s, name: c.name || s.name, best: c.best, dailyBest: c.dailyBest, updatedAt: c.updatedAt });
 }
