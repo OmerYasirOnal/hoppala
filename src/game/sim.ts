@@ -159,24 +159,28 @@ export function step(world: World, targetX: number, rng: Rng): void {
     }
   }
 
-  // enemies: stomp from above (falling) kills + bounces; an active boost plows through;
-  // any other contact ends the run.
+  // enemies: stomp (foot swept onto the top while falling) kills + bounces; an active boost
+  // plows through; any other body contact ends the run. Foot-sweep (not an end-position point
+  // test) so a fast fall can't tunnel and a same-step platform bounce can't mask a valid stomp.
   for (const e of world.enemies) {
-    if (e.dead) continue;
+    if (e.dead || world.over) continue;
     const dxr = Math.abs(p.x - e.x);
     const dx = Math.min(dxr, TUNING.viewWidth - dxr);
-    const dy = p.y - e.y;
     const rr = TUNING.playerR + TUNING.enemyR;
-    if (dx * dx + dy * dy > rr * rr) continue;
+    const enemyTop = e.y - TUNING.enemyR;
+    const dy = p.y - e.y;
+    const bodyHit = dx * dx + dy * dy <= rr * rr;
     if (p.boostT > 0) {
+      if (bodyHit) {
+        e.dead = true;
+        world.events.push('stomp');
+      }
+    } else if (dx <= rr && footBefore <= enemyTop && footAfter >= enemyTop) {
       e.dead = true;
-      world.events.push('stomp');
-    } else if (p.vy > 0 && p.prevY + TUNING.playerR <= e.y - TUNING.enemyR) {
-      e.dead = true;
-      p.y = e.y - TUNING.enemyR - TUNING.playerR;
+      p.y = enemyTop - TUNING.playerR;
       p.vy = TUNING.stompVy;
       world.events.push('stomp');
-    } else {
+    } else if (bodyHit) {
       world.over = true;
       world.events.push('gameover');
     }

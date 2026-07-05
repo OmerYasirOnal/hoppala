@@ -156,6 +156,9 @@ export function createRenderer(canvas: HTMLCanvasElement): {
         ctx.beginPath();
         ctx.arc(ex, ey, TUNING.enemyR, 0, Math.PI * 2);
         ctx.fill();
+        ctx.strokeStyle = 'rgba(255,255,255,0.85)'; // light outline so the silhouette reads in dark zones
+        ctx.lineWidth = 2;
+        ctx.stroke();
         ctx.fillStyle = '#fff';
         ctx.beginPath();
         ctx.arc(ex - 5, ey - 3, 3.2, 0, Math.PI * 2);
