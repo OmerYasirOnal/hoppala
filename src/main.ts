@@ -37,12 +37,13 @@ window.addEventListener('resize', () => {
   }
 });
 
-const drag = attachDrag(app, TUNING.viewWidth, canvas, () => loadSave().sensitivity ?? 1);
 const sfx = createSfx();
 const save = loadSave();
 let muted = save.muted;
 let best = save.best;
 let maxZone = save.maxZone ?? 0;
+let sensitivity = save.sensitivity ?? 1;
+const drag = attachDrag(app, TUNING.viewWidth, canvas, () => sensitivity);
 let runZone = 0; // highest zone index shown as a banner this run
 sfx.setMuted(muted);
 
@@ -167,7 +168,7 @@ const ui = createUI(uiRoot, {
     const s = loadSave();
     renderSettings(uiRoot, {
       muted, haptics: s.haptics ?? true, lang: s.lang ?? 'system', name: online.name(), native: isNative, version: '1.2.0',
-      sensitivity: s.sensitivity ?? 1,
+      sensitivity,
     }, {
       onMute: (m) => { muted = m; sfx.setMuted(m); saveMuted(m); ui.setMuted(m); },
       onHaptics: (on) => saveHaptics(on),
@@ -175,7 +176,7 @@ const ui = createUI(uiRoot, {
       onEditName: () => { void online.editName((current) => askNickname(uiRoot, current)); },
       onReset: () => { resetSave(); location.reload(); },
       onClose: () => {},
-      onSensitivity: (n) => saveSensitivity(n),
+      onSensitivity: (n) => { sensitivity = n; saveSensitivity(n); },
     });
   },
   onZones() {

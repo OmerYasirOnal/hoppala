@@ -170,4 +170,12 @@ describe('createOnline', () => {
     online.pushMaxZone(4);
     expect(backend.saveCloudSave).toHaveBeenCalledWith({ maxZone: 4 });
   });
+
+  it('init merges the backend maxZone into the local save', async () => {
+    const backend = fakeBackend({ loadCloudSave: vi.fn(async () => ({ name: 'Neo', best: 0, maxZone: 5, updatedAt: 999 })) });
+    const { deps, save } = fakeDeps({ makeBackend: async () => backend });
+    const online = createOnline(deps);
+    await online.init();
+    expect(save.v.maxZone).toBe(5);
+  });
 });

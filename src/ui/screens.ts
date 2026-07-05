@@ -152,12 +152,17 @@ export function createUI(
   }
 
   let lastZoneName = '';
+  let lastPct = -1;
   function setZone(name: string, progress: number): void {
     if (name !== lastZoneName) {
       lastZoneName = name;
       zoneEl.textContent = name;
     }
-    zoneFill.style.width = `${Math.round(progress * 100)}%`;
+    const pct = Math.round(progress * 100);
+    if (pct !== lastPct) {
+      lastPct = pct;
+      zoneFill.style.width = `${pct}%`;
+    }
   }
 
   function showZoneBanner(name: string): void {

@@ -103,5 +103,12 @@ export function toCloudSave(): CloudSave {
 /** Write an already-merged CloudSave back, preserving local-only fields (muted/onboarded/lang/haptics). */
 export function writeCloudSave(c: CloudSave): void {
   const s = read();
-  write({ ...s, name: c.name || s.name, best: c.best, dailyBest: c.dailyBest, maxZone: c.maxZone, updatedAt: c.updatedAt });
+  write({
+    ...s,
+    name: c.name || s.name,
+    best: Math.max(c.best, s.best),
+    dailyBest: c.dailyBest,
+    maxZone: Math.max(c.maxZone ?? 0, s.maxZone ?? 0),
+    updatedAt: c.updatedAt,
+  });
 }

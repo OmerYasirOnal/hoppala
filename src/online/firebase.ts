@@ -89,6 +89,7 @@ export function createFirebaseBackend(config: FirebaseConfig): OnlineBackend {
         name: d.name as string,
         best: d.best as number,
         dailyBest: d.dailyBest as CloudSave['dailyBest'],
+        maxZone: d.maxZone as number | undefined,
         updatedAt: (d.updatedAt as number) ?? 0,
       };
     },

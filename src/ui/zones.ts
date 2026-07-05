@@ -19,7 +19,8 @@ export function renderZones(root: HTMLElement, view: ZonesView): void {
     .join('');
   overlay.innerHTML = `
     <div class="modal">
-      <h2>${t.zones} <span class="dim">${view.reachedCount}/${view.rows.length}</span></h2>
+      <h2>${t.zones}</h2>
+      <div class="dim" style="margin:-6px 0 10px">${t.reached}: ${view.reachedCount}/${view.rows.length}</div>
       <div class="zlist">${list}</div>
       <div class="modal-actions"><button id="z-close">${t.close}</button></div>
     </div>`;

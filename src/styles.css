@@ -15,7 +15,9 @@ html, body { height: 100%; background: #0b1220; overscroll-behavior: none; }
 }
 #ui .hud {
   position: absolute; top: max(12px, env(safe-area-inset-top)); left: 0; right: 0;
-  display: flex; justify-content: center; font-weight: 700; font-size: 22px;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  padding-right: 46px;
+  font-weight: 700; font-size: 22px;
   text-shadow: 0 1px 4px rgba(0,0,0,0.4);
 }
 #ui h1 { font-size: 42px; letter-spacing: 1px; }
@@ -99,14 +101,14 @@ button.danger { color: #ff8a8a; }
 }
 .coach-tip.fade { opacity: 0; }
 .modal input[type="range"] { width: 140px; accent-color: #2b6fff; }
-.zone { margin-left: 8px; color: #cfe0ff; font-size: 0.9em; opacity: 0.9; }
+.zone { margin-left: 8px; color: #cfe0ff; font-size: 0.9em; opacity: 0.9; flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 34vw; }
 .zonebar { position: absolute; left: 12px; right: 12px; top: 30px; height: 3px; background: rgba(255,255,255,0.12); border-radius: 2px; overflow: hidden; }
 .zonebar-fill, #zonebar-fill { height: 100%; width: 0%; background: #7ee08a; transition: width 0.2s; }
 .zone-banner { position: fixed; left: 50%; top: 22%; transform: translateX(-50%); font-size: 22px; font-weight: 700; color: #fff; text-shadow: 0 2px 12px rgba(0,0,0,0.6); z-index: 15; transition: opacity 0.6s; }
 .zone-banner.fade { opacity: 0; }
 .zone-celebrate { position: fixed; inset: 0; display: grid; place-items: center; z-index: 25; transition: opacity 0.7s; }
 .zone-celebrate.fade { opacity: 0; }
-.zc-card { background: color-mix(in srgb, var(--zc) 30%, #121a2c); border: 2px solid var(--zc); border-radius: 18px; padding: 22px 34px; text-align: center; box-shadow: 0 12px 50px rgba(0,0,0,0.6); }
+.zc-card { background: color-mix(in srgb, var(--zc) 30%, #121a2c); border: 2px solid var(--zc); border-radius: 18px; padding: 22px 34px; text-align: center; box-shadow: 0 12px 50px rgba(0,0,0,0.6); pointer-events: auto; }
 .zc-title { font-size: 15px; color: #eaf0ff; opacity: 0.9; }
 .zc-name { font-size: 26px; font-weight: 800; color: #fff; margin-top: 4px; }
 .coach-tip.big { font-size: 18px; font-weight: 700; padding: 14px 22px; }

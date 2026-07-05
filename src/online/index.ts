@@ -161,7 +161,13 @@ export function createOnline(deps: OnlineDeps): Online {
     },
 
     pushMaxZone(zone): void {
-      if (backend && ready) backend.saveCloudSave({ maxZone: zone }).catch(() => {});
+      if (backend && ready && name) {
+        try {
+          backend.saveCloudSave({ maxZone: zone }).catch(() => {});
+        } catch {
+          /* synchronous throw — ignore; best-effort */
+        }
+      }
     },
 
     flush(): void {
