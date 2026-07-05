@@ -112,6 +112,11 @@ export function step(world: World, targetX: number, rng: Rng): void {
     if (plat.amp > 0) plat.x = plat.baseX + Math.sin(world.time * plat.speed + plat.phase) * plat.amp;
   }
 
+  // enemies patrol horizontally (mirrors moving platforms)
+  for (const e of world.enemies) {
+    if (!e.dead && e.amp > 0) e.x = e.baseX + Math.sin(world.time * e.speed + e.phase) * e.amp;
+  }
+
   // collision: only while falling and not boosting; among all platforms crossed
   // by this step's foot sweep, land on the topmost (smallest y) — first contact.
   if (p.vy > 0 && p.boostT === 0) {
@@ -154,6 +159,29 @@ export function step(world: World, targetX: number, rng: Rng): void {
     }
   }
 
+  // enemies: stomp from above (falling) kills + bounces; an active boost plows through;
+  // any other contact ends the run.
+  for (const e of world.enemies) {
+    if (e.dead) continue;
+    const dxr = Math.abs(p.x - e.x);
+    const dx = Math.min(dxr, TUNING.viewWidth - dxr);
+    const dy = p.y - e.y;
+    const rr = TUNING.playerR + TUNING.enemyR;
+    if (dx * dx + dy * dy > rr * rr) continue;
+    if (p.boostT > 0) {
+      e.dead = true;
+      world.events.push('stomp');
+    } else if (p.vy > 0 && p.prevY + TUNING.playerR <= e.y - TUNING.enemyR) {
+      e.dead = true;
+      p.y = e.y - TUNING.enemyR - TUNING.playerR;
+      p.vy = TUNING.stompVy;
+      world.events.push('stomp');
+    } else {
+      world.over = true;
+      world.events.push('gameover');
+    }
+  }
+
   // camera: follow upward only
   world.cameraY = Math.min(world.cameraY, p.y - world.viewHeight * CAMERA_LINE);
 
@@ -165,6 +193,7 @@ export function step(world: World, targetX: number, rng: Rng): void {
   const cullBelow = world.cameraY + world.viewHeight + CULL_MARGIN;
   world.platforms = world.platforms.filter((pl) => pl.y <= cullBelow && !pl.broken);
   world.pickups = world.pickups.filter((pk) => pk.y <= cullBelow && !pk.taken);
+  world.enemies = world.enemies.filter((e) => !e.dead && e.y <= cullBelow);
 
   // death: fell below the view
   if (p.y - TUNING.playerR > world.cameraY + world.viewHeight) {

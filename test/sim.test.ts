@@ -263,3 +263,72 @@ describe('v1.1 content', () => {
     expect(run()).toEqual(run());
   });
 });
+
+describe('v1.4 enemies', () => {
+  const enemy = (over: Partial<import('../src/game/types').Enemy> = {}) => ({
+    id: 1, x: 200, y: 0, baseX: 200, amp: 0, speed: 0, phase: 0, dead: false, ...over,
+  });
+
+  it('stomping an enemy from above kills it and bounces the player', () => {
+    const w = world();
+    w.platforms = [];
+    w.enemies = [enemy({ x: 200, y: 0 })];
+    w.player.x = 200;
+    w.player.y = -TUNING.enemyR - TUNING.playerR - 1; // just above the enemy's top
+    w.player.vy = 300; // falling
+    let stomped = false;
+    for (let i = 0; i < 10 && !stomped; i++) {
+      step(w, 200, mulberry32(60));
+      stomped = w.events.includes('stomp');
+    }
+    expect(stomped).toBe(true);
+    expect(w.enemies.length).toBe(0); // killed → culled the same step
+    expect(w.player.vy).toBe(TUNING.stompVy);
+    expect(w.over).toBe(false);
+  });
+
+  it('rising into an enemy kills the player', () => {
+    const w = world();
+    w.platforms = [];
+    w.enemies = [enemy({ x: 200, y: 0 })];
+    w.player.x = 200;
+    w.player.y = TUNING.enemyR + TUNING.playerR - 2; // just below, overlapping
+    w.player.vy = -300; // rising
+    step(w, 200, mulberry32(61));
+    expect(w.over).toBe(true);
+    expect(w.events).toContain('gameover');
+    expect(w.enemies[0]!.dead).toBe(false);
+  });
+
+  it('a jetpack boost plows through enemies without dying', () => {
+    const w = world();
+    w.platforms = [];
+    w.enemies = [enemy({ x: 200, y: 0 })];
+    w.player.x = 200;
+    w.player.y = 0; // overlapping the enemy
+    w.player.boostT = TUNING.boostDuration;
+    step(w, 200, mulberry32(62));
+    expect(w.enemies.length).toBe(0); // killed → culled the same step
+    expect(w.events).toContain('stomp');
+    expect(w.over).toBe(false);
+    expect(w.player.boostT).toBeGreaterThan(0);
+  });
+
+  it('patrolling enemies oscillate horizontally around baseX', () => {
+    const w = world();
+    w.platforms = [];
+    w.enemies = [enemy({ x: 200, baseX: 200, amp: 50, speed: 2, phase: 0, y: 0 })];
+    const xs = new Set<number>();
+    for (let i = 0; i < 20; i++) {
+      // keep the player low + fixed and far in x: no death, camera stays put (enemy never culled), no contact
+      w.player.x = 20;
+      w.player.y = 100;
+      w.player.vy = 0;
+      step(w, 20, mulberry32(63));
+      if (w.enemies[0]) xs.add(Math.round(w.enemies[0].x));
+    }
+    expect(xs.size).toBeGreaterThan(1); // it moved
+    expect(Math.max(...xs)).toBeLessThanOrEqual(251);
+    expect(Math.min(...xs)).toBeGreaterThanOrEqual(149);
+  });
+});
