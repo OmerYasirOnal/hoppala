@@ -1,7 +1,7 @@
 import { TUNING, type Platform, type World } from '../game/types';
 import { phantomVisible } from '../game/sim';
 import { ZONES, zoneIndexAt, zoneProgress } from '../game/zones';
-import { particleAt, easeOutPulse, type Particle } from './fx';
+import { particleAt, easeOutPulse, platformPalette, type Particle } from './fx';
 
 function lerp(a: number, b: number, t: number): number {
   return a + (b - a) * t;
@@ -42,6 +42,7 @@ export function createRenderer(canvas: HTMLCanvasElement): {
   const MAX_PARTICLES = 120;
   let prevPlayerVy = 0;
   let landPulseTime = -1;
+  const breaks = new Map<number, number>(); // crumbling platform id -> sim time it broke
 
   function resize(): void {
     const parent = canvas.parentElement!;
@@ -83,36 +84,75 @@ export function createRenderer(canvas: HTMLCanvasElement): {
     }
   }
 
-  function drawPlatform(p: Platform, camY: number, time: number): void {
-    if (p.broken) return;
-    const y = p.y - camY;
+  function drawPlatform(p: Platform, camY: number, time: number, zTop: readonly [number, number, number]): void {
+    // crumbling: track the break moment and play a short drop-fade instead of vanishing
+    let drop = 0;
+    let fade = 1;
+    if (p.broken) {
+      if (!breaks.has(p.id)) breaks.set(p.id, time);
+      const age = time - breaks.get(p.id)!;
+      if (age > 0.35) return; // fully gone
+      drop = age * 60;
+      fade = 1 - age / 0.35;
+    }
+    const y = p.y - camY + drop;
+
+    let alpha = fade;
     if (p.kind === 'phantom') {
       const cycle = TUNING.phantomOn + TUNING.phantomOff;
       const tt = (((time + p.phase) % cycle) + cycle) % cycle;
-      const a = phantomVisible(p, time)
-        ? Math.min(1, tt / 0.25, (TUNING.phantomOn - tt) / 0.25)
-        : 0;
+      const a = phantomVisible(p, time) ? Math.min(1, tt / 0.25, (TUNING.phantomOn - tt) / 0.25) : 0;
       if (a <= 0) return;
-      ctx.globalAlpha = Math.max(0.15, a);
+      alpha = Math.max(0.18, a);
     }
-    ctx.fillStyle = PLATFORM_COLORS[p.kind];
+    ctx.globalAlpha = alpha;
+
+    const pal = platformPalette(zTop, p.kind);
+    const left = p.x - p.w / 2;
+    const h = TUNING.platformH;
+    // body
+    ctx.fillStyle = pal.body;
     ctx.beginPath();
-    ctx.roundRect(p.x - p.w / 2, y, p.w, TUNING.platformH, 7);
+    ctx.roundRect(left, y, p.w, h, 7);
     ctx.fill();
+    // bottom edge (dimensional shadow)
+    ctx.fillStyle = pal.edge;
+    ctx.beginPath();
+    ctx.roundRect(left, y + h - 3, p.w, 3, 3);
+    ctx.fill();
+    // top highlight band
+    ctx.fillStyle = pal.top;
+    ctx.beginPath();
+    ctx.roundRect(left + 2, y + 1.5, p.w - 4, 2.5, 2);
+    ctx.fill();
+
     if (p.kind === 'spring') {
-      ctx.fillStyle = '#ffd23e';
+      ctx.strokeStyle = '#ffd23e';
+      ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.roundRect(p.x - 10, y - 8, 20, 8, 3);
-      ctx.fill();
-    }
-    if (p.kind === 'crumbling') {
+      ctx.moveTo(p.x - 8, y - 2);
+      ctx.lineTo(p.x - 3, y - 8);
+      ctx.lineTo(p.x + 3, y - 2);
+      ctx.lineTo(p.x + 8, y - 8);
+      ctx.stroke();
+    } else if (p.kind === 'crumbling') {
       ctx.strokeStyle = 'rgba(0,0,0,0.35)';
       ctx.lineWidth = 1.5;
       ctx.beginPath();
       ctx.moveTo(p.x - 8, y + 2);
-      ctx.lineTo(p.x - 2, y + TUNING.platformH - 3);
+      ctx.lineTo(p.x - 2, y + h - 3);
       ctx.lineTo(p.x + 5, y + 4);
       ctx.stroke();
+    } else if (p.kind === 'moving') {
+      ctx.fillStyle = 'rgba(255,255,255,0.5)';
+      ctx.beginPath();
+      ctx.moveTo(p.x - 5, y + h / 2);
+      ctx.lineTo(p.x - 1, y + h / 2 - 3);
+      ctx.lineTo(p.x - 1, y + h / 2 + 3);
+      ctx.moveTo(p.x + 5, y + h / 2);
+      ctx.lineTo(p.x + 1, y + h / 2 - 3);
+      ctx.lineTo(p.x + 1, y + h / 2 + 3);
+      ctx.fill();
     }
     ctx.globalAlpha = 1;
   }
@@ -177,7 +217,8 @@ export function createRenderer(canvas: HTMLCanvasElement): {
       }
     }
 
-    for (const p of world.platforms) drawPlatform(p, camY, world.time);
+    const zt = ZONES[zoneIndexAt(world.maxAltitude / 10)]!.top;
+    for (const p of world.platforms) drawPlatform(p, camY, world.time, zt);
 
     for (const pk of world.pickups) {
       if (pk.taken) continue;
@@ -196,7 +237,6 @@ export function createRenderer(canvas: HTMLCanvasElement): {
     }
 
     // enemies: procedural monster, glow-accented by the current zone, wrap-x like the player
-    const zt = ZONES[zoneIndexAt(world.maxAltitude / 10)]!.top;
     for (const e of world.enemies) {
       if (e.dead) continue;
       const ey = e.y - camY;
