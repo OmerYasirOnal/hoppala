@@ -88,6 +88,24 @@ export function createRenderer(canvas: HTMLCanvasElement): {
     }
   }
 
+  function drawDecor(world: World, camY: number): void {
+    // soft drifting clouds low in the climb; fade out by the higher zones
+    const zi = zoneIndexAt(world.maxAltitude / 10);
+    const cloudiness = Math.max(0, 1 - zi / 4);
+    if (cloudiness <= 0.02) return;
+    ctx.fillStyle = `rgba(255,255,255,${0.1 * cloudiness})`;
+    for (let i = 0; i < 6; i++) {
+      const cx = (i * 137) % TUNING.viewWidth;
+      const cy = ((((i * 271) % 1200) - ((camY * 0.3) % 1200)) + 1200) % 1200;
+      if (cy > viewH + 40) continue;
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, 26, 12, 0, 0, Math.PI * 2);
+      ctx.ellipse(cx + 18, cy + 4, 18, 10, 0, 0, Math.PI * 2);
+      ctx.ellipse(cx - 16, cy + 3, 15, 9, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
   function drawPlatform(p: Platform, camY: number, time: number, zTop: readonly [number, number, number]): void {
     // crumbling: track the break moment and play a short drop-fade instead of vanishing
     let drop = 0;
@@ -230,6 +248,8 @@ export function createRenderer(canvas: HTMLCanvasElement): {
         if (sy < viewH) ctx.fillRect(sx, sy, 2, 2);
       }
     }
+
+    drawDecor(world, camY);
 
     const zt = ZONES[zoneIndexAt(world.maxAltitude / 10)]!.top;
     for (const p of world.platforms) drawPlatform(p, camY, world.time, zt);
