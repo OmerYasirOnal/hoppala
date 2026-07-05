@@ -10,8 +10,9 @@ const STRINGS = {
     resetConfirm: 'Tüm veriler silinsin mi?', offline: 'çevrimdışı', refresh: 'Yenile', loading: 'Yükleniyor…',
     close: 'Kapat', you: 'Sen', version: 'Sürüm', credits: 'Künye', invalidName: '3–16 karakter, uygun bir ad gir',
     sensitivity: 'Hassasiyet',
-    zones: 'Bölgeler', reached: 'Ulaşılan', zone_meadow: 'Çayır', zone_sky: 'Gökyüzü', zone_clouds: 'Bulutlar', zone_dawn: 'Şafak', zone_aurora: 'Kutup', zone_strato: 'Stratosfer', zone_space: 'Uzay', zone_cosmos: 'Kozmos', newZone: 'Yeni bölge',
+    reached: 'Ulaşılan', zone_meadow: 'Çayır', zone_sky: 'Gökyüzü', zone_clouds: 'Bulutlar', zone_dawn: 'Şafak', zone_aurora: 'Kutup', zone_strato: 'Stratosfer', zone_space: 'Uzay', zone_cosmos: 'Kozmos', newZone: 'Yeni bölge',
     bestCombo: 'En yüksek combo',
+    journey: 'Yolculuk', climbForever: 'sonsuza dek tırman', start: 'başlangıç',
     pause: 'Durdur', resume: 'Devam', mainMenu: 'Ana menü', paused: 'Durduruldu',
   },
   en: {
@@ -23,8 +24,9 @@ const STRINGS = {
     resetConfirm: 'Erase all data?', offline: 'offline', refresh: 'Refresh', loading: 'Loading…',
     close: 'Close', you: 'You', version: 'Version', credits: 'Credits', invalidName: 'Enter a valid 3–16 char name',
     sensitivity: 'Sensitivity',
-    zones: 'Zones', reached: 'Reached', zone_meadow: 'Meadow', zone_sky: 'Sky', zone_clouds: 'Clouds', zone_dawn: 'Dawn', zone_aurora: 'Aurora', zone_strato: 'Stratosphere', zone_space: 'Space', zone_cosmos: 'Cosmos', newZone: 'New zone',
+    reached: 'Reached', zone_meadow: 'Meadow', zone_sky: 'Sky', zone_clouds: 'Clouds', zone_dawn: 'Dawn', zone_aurora: 'Aurora', zone_strato: 'Stratosphere', zone_space: 'Space', zone_cosmos: 'Cosmos', newZone: 'New zone',
     bestCombo: 'Best combo',
+    journey: 'Journey', climbForever: 'climb forever', start: 'start',
     pause: 'Pause', resume: 'Resume', mainMenu: 'Main menu', paused: 'Paused',
   },
 } as const;
@@ -120,7 +122,7 @@ export function createUI(
     panel.append(button(t.free, false, () => handlers.onPlay('free')));
     panel.append(button(`${t.daily} #${daily.day}`, false, () => handlers.onPlay('daily')));
     panel.append(button(`🏆 ${t.leaderboard}`, true, handlers.onLeaderboard));
-    panel.append(button(`🗺️ ${t.zones}`, true, handlers.onZones));
+    panel.append(button(`🗺️ ${t.journey}`, true, handlers.onZones));
     panel.append(button(`⚙ ${t.settings}`, true, handlers.onSettings));
   }
 
