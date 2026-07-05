@@ -41,8 +41,20 @@ presses the FINAL "Submit to App Review" themselves.
 7. **App Information**: Subtitle TR `Hayalet platformlara dikkat!` / EN
    `Mind the phantom platforms!`; Category Games → Arcade; no third-party content.
    Age rating questionnaire: all None → 4+.
-8. **App Privacy**: questionnaire → **Data Not Collected**; policy URL
-   `https://hoppala.vercel.app/privacy.html` (verified live).
+8. **App Privacy**: questionnaire → **Data Collected** (CHANGED for v1.9 — since v1.2 the
+   online layer stores data in Firebase; the old "Data Not Collected" is now inaccurate and
+   MUST be updated). Declare exactly ONE data type:
+   - **Identifiers → User ID**: the anonymous Firebase Auth UID + the player's chosen
+     public leaderboard nickname (a game handle, not a real name). **Linked to the user: Yes.
+     Used for tracking: No.** Purpose: **App Functionality** (unified leaderboard + cloud save).
+   - Nothing else is collected: no contact info, no real name/email, no location, no financial,
+     no contacts, no browsing/search, no diagnostics beyond the above, and **no ad-network / cross-app
+     tracking** (AdMob is deferred to the v1.9-B follow-up; when it lands, this questionnaire must
+     add ad-related data types + "Used for Tracking: Yes" + an ATT prompt).
+   - Scores are gameplay records associated with that User ID (covered by App Functionality); if the
+     form insists on a category, use **Usage Data → Product Interaction** (Linked, App Functionality,
+     no tracking).
+   - Policy URL `https://hoppala.vercel.app/privacy.html` (already discloses this; verified live).
 9. **Pricing and Availability**: Free (0), all territories.
 10. **Add for Review** → review the summary → the USER presses **Submit to App Review**.
 11. After submit: append status to `.superpowers/sdd/progress.md`; if Apple rejects,
