@@ -52,9 +52,15 @@ export function renderZones(root: HTMLElement, view: ZonesView): void {
     else if (!reached) label = '???';
     else {
       const name = escapeHtml(view.rows[i]!.name);
-      label = isCurrent
-        ? `▲ ${name} · ${view.best} m`
-        : `${name} · ${i === 0 ? escapeHtml(t.start) : `${view.rows[i]!.meters} m`}`;
+      if (isCurrent) {
+        // `best` is free-mode-only while the reached zone advances in any mode; floor the
+        // shown metres to this zone's own threshold so the label can never contradict itself
+        // (e.g. reaching Aurora via a daily run with a 0 free best → "▲ Aurora · 700 m", not "· 0 m").
+        const shownBest = Math.max(view.best, view.rows[i]!.meters);
+        label = `▲ ${name} · ${shownBest} m`;
+      } else {
+        label = `${name} · ${i === 0 ? escapeHtml(t.start) : `${view.rows[i]!.meters} m`}`;
+      }
     }
     const cls = isCurrent ? 'jm-here' : reached ? 'jm-on' : 'jm-off';
     const labelEl = `<text x="${lx}" y="${n.y + 4}" text-anchor="${anchor}" class="${cls}">${label}</text>`;
