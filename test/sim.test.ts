@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { mulberry32 } from '../src/core/rng';
-import { createWorld, step, phantomVisible } from '../src/game/sim';
+import { createWorld, step, phantomVisible, shortestWrapDelta } from '../src/game/sim';
 import { TUNING, type Platform } from '../src/game/types';
 
 const VIEW_H = 700;
@@ -78,12 +78,39 @@ describe('step physics', () => {
     expect(w.events).not.toContain('bounce');
   });
 
-  it('wraps horizontally', () => {
-    const w = world();
-    step(w, -5, mulberry32(7));
-    expect(w.player.x).toBeCloseTo(TUNING.viewWidth - 5, 5);
-    step(w, TUNING.viewWidth + 12, mulberry32(8));
-    expect(w.player.x).toBeCloseTo(12, 5);
+  it('eases toward the wrapped target via the shortest path (incl. seam crossing)', () => {
+    const w = world(); // player.x = 200
+    // keep the player alive (high on screen, not falling) so it never dies during the
+    // convergence — smoothing takes many steps, unlike the old instant-teleport control.
+    const keepAlive = () => {
+      w.player.y = w.cameraY + 0.2 * VIEW_H;
+      w.player.vy = 0;
+    };
+    for (let i = 0; i < 60; i++) {
+      keepAlive();
+      step(w, 395, mulberry32(7));
+    }
+    expect(w.player.x).toBeCloseTo(395, 1);
+    // from ~395 toward 12: shortest path is +17 across the seam (395 -> 400/0 -> 12)
+    for (let i = 0; i < 60; i++) {
+      keepAlive();
+      step(w, 12, mulberry32(8));
+    }
+    expect(w.player.x).toBeCloseTo(12, 1);
+  });
+
+  it('smoothing moves the player a fixed fraction toward the target each step', () => {
+    const w = world(); // x = 200
+    step(w, 300, mulberry32(50));
+    expect(w.player.x).toBeCloseTo(200 + 100 * TUNING.steerSmoothing, 5);
+  });
+
+  it('shortestWrapDelta returns the signed shortest horizontal delta across the seam', () => {
+    expect(shortestWrapDelta(200, 300)).toBe(100);
+    expect(shortestWrapDelta(390, 10)).toBe(20);
+    expect(shortestWrapDelta(10, 390)).toBe(-20);
+    expect(shortestWrapDelta(0, 200)).toBe(200);
+    expect(shortestWrapDelta(200, 200)).toBe(0);
   });
 
   it('camera follows up but never scrolls down', () => {

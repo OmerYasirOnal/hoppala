@@ -13,6 +13,7 @@ export const TUNING = {
   boostVy: -1400, // px/s driven during a jetpack boost
   boostDuration: 1.2, // s
   pickupR: 12,
+  steerSmoothing: 0.5, // 1 = instant snap to the drag target; lower = smoother/eased horizontal follow
 } as const;
 
 /** Peak height of a normal bounce: v² / 2g ≈ 250.6 px. */

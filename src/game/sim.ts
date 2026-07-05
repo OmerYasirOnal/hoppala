@@ -11,6 +11,13 @@ function wrapX(x: number): number {
   return ((x % w) + w) % w;
 }
 
+/** Signed shortest horizontal delta from `from` to `to` across the 0..viewWidth wrap seam. */
+export function shortestWrapDelta(from: number, to: number): number {
+  const w = TUNING.viewWidth;
+  const d = (((to - from) % w) + w) % w; // 0..w
+  return d > w / 2 ? d - w : d;          // (-w/2, w/2]
+}
+
 /** Horizontal overlap test that respects edge wrap-around. */
 function overlapsX(px: number, plat: Platform): boolean {
   const half = plat.w / 2 + TUNING.playerR * 0.7;
@@ -83,8 +90,8 @@ export function step(world: World, targetX: number, rng: Rng): void {
   p.prevY = p.y;
   world.prevCameraY = world.cameraY;
 
-  // steering: teleport to the wrapped drag target (relative-drag is resolved by the input layer)
-  p.x = wrapX(targetX);
+  // steering: ease toward the wrapped drag target (smoothing keeps it fluid but still precise)
+  p.x = wrapX(p.x + shortestWrapDelta(p.x, wrapX(targetX)) * TUNING.steerSmoothing);
 
   // integrate vertical motion (jetpack boost overrides gravity + collision)
   let footBefore = p.y + TUNING.playerR;
