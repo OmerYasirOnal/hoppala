@@ -7,6 +7,7 @@ describe('native-install: hapticFor', () => {
     expect(hapticFor('spring')).toBe('impactMedium');
     expect(hapticFor('break')).toBe('impactLight');
     expect(hapticFor('boost')).toBe('impactMedium');
+    expect(hapticFor('stomp')).toBe('impactMedium');
     expect(hapticFor('record')).toBe('notifySuccess');
     expect(hapticFor('gameover')).toBe('notifyError');
   });

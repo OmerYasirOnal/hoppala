@@ -14,6 +14,8 @@ export const TUNING = {
   boostDuration: 1.2, // s
   pickupR: 12,
   steerSmoothing: 0.5, // 1 = instant snap to the drag target; lower = smoother/eased horizontal follow
+  enemyR: 15,
+  stompVy: -1300, // stomp bounce impulse (stronger than a normal bounce, weaker than a spring)
 } as const;
 
 /** Peak height of a normal bounce: v² / 2g ≈ 250.6 px. */
@@ -50,12 +52,24 @@ export interface Pickup {
   taken: boolean;
 }
 
-export type SimEvent = 'bounce' | 'spring' | 'break' | 'boost' | 'gameover';
+export interface Enemy {
+  id: number;
+  x: number; // center (updated each step for patrol)
+  y: number; // center (world y-down)
+  baseX: number;
+  amp: number; // 0 = static
+  speed: number; // rad/s
+  phase: number;
+  dead: boolean;
+}
+
+export type SimEvent = 'bounce' | 'spring' | 'break' | 'boost' | 'stomp' | 'gameover';
 
 export interface World {
   player: Player;
   platforms: Platform[];
   pickups: Pickup[];
+  enemies: Enemy[];
   cameraY: number; // world y of the viewport top
   prevCameraY: number;
   viewHeight: number;

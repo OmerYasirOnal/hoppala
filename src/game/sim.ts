@@ -49,6 +49,7 @@ export function createWorld(rng: Rng, viewHeight: number): World {
     },
     platforms: [start],
     pickups: [],
+    enemies: [],
     // places the start platform ~60% down the view; the follow rule takes over from the first step
     cameraY: startCameraY,
     prevCameraY: startCameraY,

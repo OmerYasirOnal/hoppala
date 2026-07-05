@@ -14,6 +14,7 @@ const HAPTIC_MAP: Record<HapticEvent, HapticKind> = {
   spring: 'impactMedium',
   break: 'impactLight',
   boost: 'impactMedium',
+  stomp: 'impactMedium',
   record: 'notifySuccess',
   gameover: 'notifyError',
 };
