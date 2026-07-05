@@ -211,12 +211,18 @@ const loop = createLoop({
   update: () => {
     if (!playing) return;
     step(world, drag.targetX(), rng);
+    const foot = world.player.y + TUNING.playerR;
     for (const e of world.events) {
       bridge.onEvent(e);
       if (e !== 'gameover' && e !== 'stomp') sfx.play(e);
+      if (e === 'bounce') renderer.burst(world.player.x, foot, 'dust', world.time);
+      else if (e === 'spring') renderer.burst(world.player.x, foot, 'spring', world.time);
+      else if (e === 'break') renderer.burst(world.player.x, foot, 'break', world.time);
+      else if (e === 'boost') renderer.burst(world.player.x, foot, 'boost', world.time);
     }
     for (const fx of world.stompFx) {
       renderer.addPop(fx.x, fx.y, fx.bonus, fx.combo, world.time);
+      renderer.burst(fx.x, fx.y, 'stomp', world.time);
       sfx.play('stomp', 1 + Math.min(fx.combo, 8) * 0.1);
     }
     const m = meters();
