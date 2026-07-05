@@ -7,7 +7,7 @@ import { attachDrag } from './input/drag';
 import { createRenderer } from './render/renderer';
 import { createSfx } from './audio/sfx';
 import { createUI, t } from './ui/screens';
-import { loadSave, saveBest, saveMuted, saveDailyBest, saveSensitivity } from './storage';
+import { loadSave, saveBest, saveMuted, saveDailyBest, saveSensitivity, saveMaxZone } from './storage';
 import { dayNumber, dateKey, runIdentity, type RunIdentity } from './core/daily';
 import { bridge, type GameMode } from './platform/bridge';
 import { online } from './online';
@@ -16,7 +16,9 @@ import { renderLeaderboard, type LeaderboardView } from './ui/leaderboard';
 import { askNickname } from './ui/nickname';
 import { renderSettings } from './ui/settings';
 import { saveOnboarded, saveLang, saveHaptics, resetSave } from './storage';
-import { lang, setLang } from './ui/screens';
+import { lang, setLang, zoneLabel } from './ui/screens';
+import { ZONES, zoneIndexAt, zoneProgress } from './game/zones';
+import { renderZones } from './ui/zones';
 
 const canvas = document.getElementById('game') as HTMLCanvasElement;
 const app = document.getElementById('app') as HTMLElement;
@@ -40,6 +42,8 @@ const sfx = createSfx();
 const save = loadSave();
 let muted = save.muted;
 let best = save.best;
+let maxZone = save.maxZone ?? 0;
+let runZone = 0; // highest zone index shown as a banner this run
 sfx.setMuted(muted);
 
 const isNative = 'Capacitor' in window;
@@ -139,6 +143,7 @@ const ui = createUI(uiRoot, {
     drag.reset(TUNING.viewWidth / 2);
     recordCelebrated = false;
     playing = true;
+    runZone = 0;
     ui.showHud(m === 'daily' ? { day: runId!.day } : undefined);
     if (firstRun) {
       firstRun = false;
@@ -173,6 +178,13 @@ const ui = createUI(uiRoot, {
       onSensitivity: (n) => saveSensitivity(n),
     });
   },
+  onZones() {
+    renderZones(uiRoot, {
+      rows: ZONES.map((z, i) => ({ key: z.key, name: zoneLabel(z.key), meters: z.meters, color: `rgb(${z.top[0]},${z.top[1]},${z.top[2]})`, reached: i <= maxZone })),
+      reachedCount: maxZone + 1,
+      onClose: () => {},
+    });
+  },
 });
 ui.setMuted(muted);
 ui.showMenu(best, { day: dayNumber(new Date()), best: dailyBestFor(dateKey(new Date())) });
@@ -183,6 +195,7 @@ if ('Capacitor' in window) {
 }
 
 void online.init().then(async () => {
+  maxZone = loadSave().maxZone ?? maxZone;
   if (playing || best <= 0) return;              // don't disturb an in-progress run
   const r = await online.myRank('global', best);
   if (r && !playing) {
@@ -202,6 +215,19 @@ const loop = createLoop({
     }
     const m = meters();
     ui.setScore(m);
+    const zi = zoneIndexAt(m);
+    ui.setZone(zoneLabel(ZONES[zi]!.key), zoneProgress(m));
+    if (zi > runZone) {
+      runZone = zi;
+      ui.showZoneBanner(zoneLabel(ZONES[zi]!.key));
+      if (zi > maxZone) {
+        maxZone = zi;
+        saveMaxZone(maxZone);
+        online.pushMaxZone(maxZone);
+        const z = ZONES[zi]!;
+        ui.showZoneCelebration(zoneLabel(z.key), `rgb(${z.top[0]},${z.top[1]},${z.top[2]})`);
+      }
+    }
     if (!recordCelebrated && runBestBaseline > 0 && m > runBestBaseline) {
       recordCelebrated = true;
       sfx.play('record');
