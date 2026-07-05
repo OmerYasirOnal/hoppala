@@ -1,6 +1,6 @@
 import type { Rng } from '../core/rng';
 import { nextPlatform, spawnExtras } from './spawner';
-import { JUMP_HEIGHT, TUNING, type Platform, type World } from './types';
+import { JUMP_HEIGHT, TUNING, type Enemy, type Platform, type World } from './types';
 
 const SPAWN_AHEAD_FACTOR = 1.0; // keep one screen of platforms above the camera
 const CULL_MARGIN = 120;
@@ -23,6 +23,15 @@ function overlapsX(px: number, plat: Platform): boolean {
   const half = plat.w / 2 + TUNING.playerR * 0.7;
   const dx = Math.abs(px - plat.x);
   return Math.min(dx, TUNING.viewWidth - dx) <= half;
+}
+
+/** Update the stomp combo + score bonus and record the kill for the score pop. */
+function registerStomp(world: World, e: Enemy): void {
+  world.combo = world.time <= world.comboEndsAt ? world.combo + 1 : 1;
+  world.comboEndsAt = world.time + TUNING.comboWindow;
+  const bonus = TUNING.stompBonus * world.combo;
+  world.stompBonus += bonus;
+  world.stompFx.push({ x: e.x, y: e.y, bonus, combo: world.combo });
 }
 
 /** Binary phantom visibility window — collision follows this exactly. */
@@ -50,6 +59,10 @@ export function createWorld(rng: Rng, viewHeight: number): World {
     platforms: [start],
     pickups: [],
     enemies: [],
+    combo: 0,
+    stompBonus: 0,
+    comboEndsAt: 0,
+    stompFx: [],
     // places the start platform ~60% down the view; the follow rule takes over from the first step
     cameraY: startCameraY,
     prevCameraY: startCameraY,
@@ -83,6 +96,7 @@ function fillPlatforms(world: World, rng: Rng): void {
 
 export function step(world: World, targetX: number, rng: Rng): void {
   world.events = [];
+  world.stompFx = [];
   if (world.over) return;
 
   const dt = TUNING.dt;
@@ -174,12 +188,14 @@ export function step(world: World, targetX: number, rng: Rng): void {
       if (bodyHit) {
         e.dead = true;
         world.events.push('stomp');
+        registerStomp(world, e);
       }
     } else if (dx <= rr && footBefore <= enemyTop && footAfter >= enemyTop) {
       e.dead = true;
       p.y = enemyTop - TUNING.playerR;
       p.vy = TUNING.stompVy;
       world.events.push('stomp');
+      registerStomp(world, e);
     } else if (bodyHit) {
       world.over = true;
       world.events.push('gameover');

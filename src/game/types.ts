@@ -16,6 +16,8 @@ export const TUNING = {
   steerSmoothing: 0.5, // 1 = instant snap to the drag target; lower = smoother/eased horizontal follow
   enemyR: 15,
   stompVy: -1300, // stomp bounce impulse (stronger than a normal bounce, weaker than a spring)
+  stompBonus: 3, // bonus meters added per combo level on a stomp
+  comboWindow: 1.5, // s within which the next stomp extends the combo
 } as const;
 
 /** Peak height of a normal bounce: v² / 2g ≈ 250.6 px. */
@@ -63,6 +65,13 @@ export interface Enemy {
   dead: boolean;
 }
 
+export interface StompFx {
+  x: number;
+  y: number;
+  bonus: number;
+  combo: number;
+}
+
 export type SimEvent = 'bounce' | 'spring' | 'break' | 'boost' | 'stomp' | 'gameover';
 
 export interface World {
@@ -70,6 +79,10 @@ export interface World {
   platforms: Platform[];
   pickups: Pickup[];
   enemies: Enemy[];
+  combo: number;
+  stompBonus: number;
+  comboEndsAt: number;
+  stompFx: StompFx[];
   cameraY: number; // world y of the viewport top
   prevCameraY: number;
   viewHeight: number;

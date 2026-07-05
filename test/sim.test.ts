@@ -155,7 +155,7 @@ describe('step physics', () => {
     const run = () => {
       const w = world(777);
       for (let i = 0; i < 600; i++) step(w, 200, mulberry32(777 + i));
-      return { alt: w.maxAltitude, n: w.platforms.length, over: w.over };
+      return { alt: w.maxAltitude, n: w.platforms.length, over: w.over, bonus: w.stompBonus };
     };
     expect(run()).toEqual(run());
   });
@@ -330,5 +330,54 @@ describe('v1.4 enemies', () => {
     expect(xs.size).toBeGreaterThan(1); // it moved
     expect(Math.max(...xs)).toBeLessThanOrEqual(251);
     expect(Math.min(...xs)).toBeGreaterThanOrEqual(149);
+  });
+});
+
+describe('v1.5 stomp combo', () => {
+  const enemy = (over: Partial<import('../src/game/types').Enemy> = {}) => ({
+    id: 1, x: 200, y: 0, baseX: 200, amp: 0, speed: 0, phase: 0, dead: false, ...over,
+  });
+  // place an enemy at (200, ey), the player just above it and falling, then step until it stomps
+  const stomp = (w: ReturnType<typeof world>, ey: number): boolean => {
+    w.enemies = [enemy({ x: 200, y: ey })];
+    w.player.x = 200;
+    w.player.y = ey - TUNING.enemyR - TUNING.playerR - 1;
+    w.player.vy = 300;
+    let done = false;
+    for (let i = 0; i < 6 && !done; i++) {
+      step(w, 200, mulberry32(70 + i));
+      done = w.events.includes('stomp');
+    }
+    return done;
+  };
+
+  it('a stomp starts the combo at 1 and adds stompBonus to the score bonus', () => {
+    const w = world();
+    w.platforms = [];
+    expect(stomp(w, 0)).toBe(true);
+    expect(w.combo).toBe(1);
+    expect(w.stompBonus).toBe(TUNING.stompBonus);
+    expect(w.stompFx.length).toBe(1);
+    expect(w.stompFx[0]!.combo).toBe(1);
+    expect(w.stompFx[0]!.bonus).toBe(TUNING.stompBonus);
+  });
+
+  it('chains the combo and escalates the bonus on quick successive stomps', () => {
+    const w = world();
+    w.platforms = [];
+    expect(stomp(w, 0)).toBe(true);
+    expect(w.combo).toBe(1);
+    expect(stomp(w, -400)).toBe(true); // a few steps later — well within comboWindow
+    expect(w.combo).toBe(2);
+    expect(w.stompBonus).toBe(TUNING.stompBonus * 1 + TUNING.stompBonus * 2); // 3 + 6 = 9
+  });
+
+  it('resets the combo to 1 for a stomp after the window lapses', () => {
+    const w = world();
+    w.platforms = [];
+    expect(stomp(w, 0)).toBe(true);
+    w.comboEndsAt = w.time - 0.001; // force the window to have already lapsed
+    expect(stomp(w, -400)).toBe(true);
+    expect(w.combo).toBe(1);
   });
 });
