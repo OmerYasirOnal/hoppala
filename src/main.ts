@@ -213,13 +213,19 @@ const loop = createLoop({
     step(world, drag.targetX(), rng);
     for (const e of world.events) {
       bridge.onEvent(e);
-      if (e !== 'gameover') sfx.play(e);
+      if (e !== 'gameover' && e !== 'stomp') sfx.play(e);
     }
-    for (const fx of world.stompFx) renderer.addPop(fx.x, fx.y, fx.bonus, fx.combo, world.time);
+    for (const fx of world.stompFx) {
+      renderer.addPop(fx.x, fx.y, fx.bonus, fx.combo, world.time);
+      sfx.play('stomp', 1 + Math.min(fx.combo, 8) * 0.1);
+    }
     const m = meters();
     ui.setScore(m);
     const zi = zoneIndexAt(m);
     ui.setZone(zoneLabel(ZONES[zi]!.key), zoneProgress(m));
+    const comboFrac = (world.comboEndsAt - world.time) / TUNING.comboWindow;
+    if (world.combo >= 2 && comboFrac > 0) ui.setCombo(world.combo, comboFrac);
+    else ui.clearCombo();
     if (zi > runZone) {
       runZone = zi;
       ui.showZoneBanner(zoneLabel(ZONES[zi]!.key));
@@ -249,7 +255,7 @@ const loop = createLoop({
       bridge.submitScore(m, mode, runId?.day);
       const board = boardForRun(mode, runId?.key);
       const daily = mode === 'daily' && runId ? { day: runId.day, best: Math.max(runBestBaseline, m) } : undefined;
-      ui.showGameOver(m, best, isRecord, daily);         // instant
+      ui.showGameOver(m, best, isRecord, daily, undefined, world.maxCombo); // instant
       online.submit(board, m);
       if (mode === 'free' && isRecord) online.pushBest(m);
       if (online.enabled()) {
@@ -257,7 +263,7 @@ const loop = createLoop({
           if (gen !== overGen || playing) return; // player already moved on
           const named = !!online.name();
           const rankStr = named && r ? `${formatRank(r, uiLang)} ${t.players}` : t.syncPending;
-          ui.showGameOver(m, best, isRecord, daily, rankStr);
+          ui.showGameOver(m, best, isRecord, daily, rankStr, world.maxCombo);
         });
       }
     }
