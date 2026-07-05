@@ -46,6 +46,11 @@ html, body { height: 100%; background: #0b1220; overscroll-behavior: none; }
   background: rgba(4, 8, 18, 0.72);
   z-index: 20;
   padding: 20px;
+  /* #ui sets pointer-events:none so gameplay taps fall through to the canvas.
+     A modal must opt back in — otherwise the backdrop AND its form controls
+     (checkbox/select/range) inherit none: taps leak through to the menu's
+     Play button (starting a game) and the settings can't be adjusted. */
+  pointer-events: auto;
 }
 .modal {
   background: #121a2c;
