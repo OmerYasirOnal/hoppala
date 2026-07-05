@@ -74,9 +74,10 @@ function fillPlatforms(world: World, rng: Rng): void {
     const p = nextPlatform(prevY, altitude, rng, world.idSeq++);
     world.platforms.push(p);
     world.nextSpawnY = p.y;
-    const extras = spawnExtras(p, prevY, altitude, rng, world.idSeq++, world.idSeq++);
+    const extras = spawnExtras(p, prevY, altitude, rng, world.idSeq++, world.idSeq++, world.idSeq++);
     if (extras.phantom) world.platforms.push(extras.phantom);
     if (extras.pickup) world.pickups.push(extras.pickup);
+    if (extras.enemy) world.enemies.push(extras.enemy);
   }
 }
 

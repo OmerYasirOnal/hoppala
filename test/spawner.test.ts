@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { mulberry32 } from '../src/core/rng';
 import { difficultyAt, nextPlatform, spawnExtras } from '../src/game/spawner';
-import { JUMP_HEIGHT, TUNING, type Pickup } from '../src/game/types';
+import { JUMP_HEIGHT, TUNING, type Pickup, type Enemy } from '../src/game/types';
 
 describe('difficultyAt', () => {
   const samples = Array.from({ length: 41 }, (_, i) => i * 500); // 0..20000 px
@@ -145,5 +145,47 @@ describe('spawnExtras', () => {
     for (let i = 0; i < 300; i++) {
       expect(spawnExtras(main(-150), 0, 1500, rngLow, i, i).pickup).toBeNull();
     }
+  });
+});
+
+describe('enemy spawning', () => {
+  const main = (y: number) => ({ id: 1, kind: 'static' as const, x: 200, y, w: 68, baseX: 200, amp: 0, speed: 0, phase: 0, broken: false });
+
+  it('ramps enemyRatio from 1000px, capped at 0.15', () => {
+    expect(difficultyAt(900).enemyRatio).toBe(0);
+    expect(difficultyAt(2000).enemyRatio).toBeGreaterThan(0);
+    let prev = 0;
+    for (let a = 0; a <= 20000; a += 500) {
+      const r = difficultyAt(a).enemyRatio;
+      expect(r).toBeGreaterThanOrEqual(prev);
+      expect(r).toBeLessThanOrEqual(0.15);
+      prev = r;
+    }
+  });
+
+  it('never spawns enemies below the 1000px onset', () => {
+    const rng = mulberry32(6);
+    for (let i = 0; i < 300; i++) {
+      expect(spawnExtras(main(-150), 0, 500, rng, i, i, i).enemy).toBeNull();
+    }
+  });
+
+  it('spawns enemies mid-gap (0.4–0.7 of the last gap), inside the viewport, above the platform', () => {
+    const rng = mulberry32(5);
+    let seen = 0;
+    for (let i = 0; i < 800 && seen < 20; i++) {
+      const m = main(-150); // last gap 150 (prevY 0 → mainPlat.y -150)
+      const { enemy } = spawnExtras(m, 0, 20000, rng, 1000 + i, 2000 + i, 3000 + i) as { enemy: Enemy | null };
+      if (!enemy) continue;
+      seen++;
+      const offset = 0 - enemy.y; // above prevY=0
+      expect(offset).toBeGreaterThanOrEqual(150 * 0.4 - 1e-9);
+      expect(offset).toBeLessThanOrEqual(150 * 0.7 + 1e-9);
+      expect(enemy.y).toBeGreaterThan(m.y); // in the gap, below the next chain platform (not on its landing spot)
+      expect(enemy.x - TUNING.enemyR).toBeGreaterThanOrEqual(-1e-9);
+      expect(enemy.x + TUNING.enemyR).toBeLessThanOrEqual(TUNING.viewWidth + 1e-9);
+      expect(enemy.dead).toBe(false);
+    }
+    expect(seen).toBeGreaterThan(0);
   });
 });

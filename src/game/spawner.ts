@@ -1,5 +1,5 @@
 import type { Rng } from '../core/rng';
-import { JUMP_HEIGHT, TUNING, type Platform, type PlatformKind, type Pickup } from './types';
+import { JUMP_HEIGHT, TUNING, type Platform, type PlatformKind, type Pickup, type Enemy } from './types';
 
 export interface Difficulty {
   gapMin: number;
@@ -10,6 +10,7 @@ export interface Difficulty {
   platformW: number;
   moveSpeed: number;
   phantomRatio: number;
+  enemyRatio: number;
 }
 
 const MAX_GAP = TUNING.maxGapFactor * JUMP_HEIGHT;
@@ -29,7 +30,8 @@ export function difficultyAt(altitude: number): Difficulty {
   const platformW = Math.max(56, TUNING.platformW - a * 0.0012);
   const moveSpeed = 1.2 + Math.min(1.8, a * 0.0002);
   const phantomRatio = a < 5000 ? 0 : Math.min(0.25, ((a - 5000) / 10000) * 0.25);
-  return { gapMin, gapMax, movingRatio, crumblingRatio, springRatio, platformW, moveSpeed, phantomRatio };
+  const enemyRatio = a < 1000 ? 0 : Math.min(0.15, ((a - 1000) / 8000) * 0.15);
+  return { gapMin, gapMax, movingRatio, crumblingRatio, springRatio, platformW, moveSpeed, phantomRatio, enemyRatio };
 }
 
 function pickKind(d: Difficulty, r: number): PlatformKind {
@@ -68,7 +70,8 @@ export function spawnExtras(
   rng: Rng,
   phantomId: number,
   pickupId: number,
-): { phantom: Platform | null; pickup: Pickup | null } {
+  enemyId: number = 0,
+): { phantom: Platform | null; pickup: Pickup | null; enemy: Enemy | null } {
   const d = difficultyAt(altitude);
   let phantom: Platform | null = null;
   if (d.phantomRatio > 0 && rng() < d.phantomRatio) {
@@ -98,5 +101,15 @@ export function spawnExtras(
       taken: false,
     };
   }
-  return { phantom, pickup };
+  let enemy: Enemy | null = null;
+  if (d.enemyRatio > 0 && rng() < d.enemyRatio) {
+    const lastGap = prevY - mainPlat.y;
+    const y = prevY - lastGap * (0.4 + rng() * 0.3); // mid-gap, above the chain platform
+    const patrol = rng() < 0.5;
+    const amp = patrol ? 40 + rng() * 50 : 0;
+    const usable = TUNING.viewWidth - 2 * (amp + TUNING.enemyR);
+    const baseX = amp + TUNING.enemyR + rng() * Math.max(0, usable);
+    enemy = { id: enemyId, x: baseX, y, baseX, amp, speed: patrol ? d.moveSpeed * (0.5 + rng() * 0.7) : 0, phase: rng() * Math.PI * 2, dead: false };
+  }
+  return { phantom, pickup, enemy };
 }

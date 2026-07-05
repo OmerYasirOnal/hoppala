@@ -257,6 +257,7 @@ describe('v1.1 content', () => {
         alt: w.maxAltitude,
         plats: w.platforms.length,
         picks: w.pickups.length,
+        enemies: w.enemies.length,
       };
     };
     expect(run()).toEqual(run());
