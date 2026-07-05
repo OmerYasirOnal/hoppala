@@ -146,6 +146,7 @@ const ui = createUI(uiRoot, {
     drag.reset(TUNING.viewWidth / 2);
     recordCelebrated = false;
     playing = true;
+    loop.start(); // idempotent (loop guards double-start) — guarantee the rAF loop runs whenever a run begins
     runZone = 0;
     ui.showHud(m === 'daily' ? { day: runId!.day } : undefined);
     if (firstRun) {
@@ -200,6 +201,7 @@ const ui = createUI(uiRoot, {
       onMainMenu: () => {
         paused = false;
         playing = false;
+        loop.start(); // onPause stopped the loop; restart it so the menu renders and the next run isn't soft-locked
         ui.showMenu(best, { day: dayNumber(new Date()), best: dailyBestFor(dateKey(new Date())) });
       },
     });

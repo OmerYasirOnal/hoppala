@@ -111,6 +111,7 @@ export function createUI(
   }
 
   function showMenu(best: number, daily: { day: number; best: number }, rank?: string): void {
+    clearCombo();
     hud.classList.add('hidden');
     pauseBtn.classList.add('hidden');
     panel.classList.remove('hidden');
