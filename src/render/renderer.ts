@@ -140,6 +140,41 @@ export function createRenderer(canvas: HTMLCanvasElement): {
       ctx.fill();
     }
 
+    // enemies: procedural monster, glow-accented by the current zone, wrap-x like the player
+    const zt = ZONES[zoneIndexAt(world.maxAltitude / 10)]!.top;
+    for (const e of world.enemies) {
+      if (e.dead) continue;
+      const ey = e.y - camY;
+      for (const ox of [0, -TUNING.viewWidth, TUNING.viewWidth]) {
+        const ex = e.x + ox;
+        if (ex < -TUNING.enemyR || ex > TUNING.viewWidth + TUNING.enemyR) continue;
+        ctx.fillStyle = `rgba(${zt[0]},${zt[1]},${zt[2]},0.5)`; // zone-tinted glow halo
+        ctx.beginPath();
+        ctx.arc(ex, ey, TUNING.enemyR + 3, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#3a1d5c'; // dark body — high contrast in every zone
+        ctx.beginPath();
+        ctx.arc(ex, ey, TUNING.enemyR, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#fff';
+        ctx.beginPath();
+        ctx.arc(ex - 5, ey - 3, 3.2, 0, Math.PI * 2);
+        ctx.arc(ex + 5, ey - 3, 3.2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#1c1c28';
+        ctx.beginPath();
+        ctx.arc(ex - 5, ey - 3, 1.6, 0, Math.PI * 2);
+        ctx.arc(ex + 5, ey - 3, 1.6, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#ff5a6e'; // angry mouth
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(ex - 6, ey + 7);
+        ctx.lineTo(ex + 6, ey + 7);
+        ctx.stroke();
+      }
+    }
+
     const w = TUNING.viewWidth;
     const rawDx = world.player.x - world.player.prevX;
     const dx = ((rawDx + w * 1.5) % w) - w / 2;
