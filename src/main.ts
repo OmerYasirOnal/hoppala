@@ -1,7 +1,7 @@
 import './styles.css';
 import { createLoop } from './core/loop';
 import { mulberry32, type Rng } from './core/rng';
-import { createWorld, step } from './game/sim';
+import { createWorld, step, revive } from './game/sim';
 import { TUNING, type World } from './game/types';
 import { attachDrag } from './input/drag';
 import { createRenderer } from './render/renderer';
@@ -19,6 +19,7 @@ import { saveOnboarded, saveLang, saveHaptics, resetSave } from './storage';
 import { lang, setLang, zoneLabel } from './ui/screens';
 import { ZONES, zoneIndexAt, zoneProgress } from './game/zones';
 import { renderZones } from './ui/zones';
+import { showRewardedAdStub } from './ui/ad';
 
 const canvas = document.getElementById('game') as HTMLCanvasElement;
 const app = document.getElementById('app') as HTMLElement;
@@ -56,6 +57,7 @@ let rng: Rng = mulberry32(Date.now() >>> 0);
 let world: World = createWorld(rng, renderer.viewHeight());
 let playing = false;
 let paused = false;
+let revivesUsed = 0;
 let recordCelebrated = false;
 let overGen = 0;
 let firstRun = !save.onboarded;
@@ -145,6 +147,7 @@ const ui = createUI(uiRoot, {
     world = createWorld(rng, renderer.viewHeight());
     drag.reset(TUNING.viewWidth / 2);
     recordCelebrated = false;
+    revivesUsed = 0;
     playing = true;
     loop.start(); // idempotent (loop guards double-start) — guarantee the rAF loop runs whenever a run begins
     runZone = 0;
@@ -227,6 +230,18 @@ void online.init().then(async () => {
 
 window.addEventListener('online', () => void online.init()); // retry auth if needed, then flush queued scores
 
+/** Ad → revive → resume the same run. Guarded against a stale game-over generation. */
+async function doRevive(gen: number): Promise<void> {
+  if (gen !== overGen || playing) return; // a new run already started
+  const rewarded = bridge.showRewardedAd ? await bridge.showRewardedAd() : await showRewardedAdStub(uiRoot);
+  if (!rewarded || gen !== overGen || playing) return;
+  revivesUsed++;
+  revive(world);
+  playing = true;
+  loop.start();
+  ui.showHud();
+}
+
 const loop = createLoop({
   update: () => {
     if (!playing) return;
@@ -285,7 +300,9 @@ const loop = createLoop({
       bridge.submitScore(m, mode, runId?.day);
       const board = boardForRun(mode, runId?.key);
       const daily = mode === 'daily' && runId ? { day: runId.day, best: Math.max(runBestBaseline, m) } : undefined;
-      ui.showGameOver(m, best, isRecord, daily, undefined, world.maxCombo); // instant
+      const canRevive = mode === 'free' && revivesUsed < 1;
+      const onRevive = canRevive ? () => void doRevive(gen) : null;
+      ui.showGameOver(m, best, isRecord, daily, undefined, world.maxCombo, onRevive); // instant
       online.submit(board, m);
       if (mode === 'free' && isRecord) online.pushBest(m);
       if (online.enabled()) {
@@ -293,7 +310,7 @@ const loop = createLoop({
           if (gen !== overGen || playing) return; // player already moved on
           const named = !!online.name();
           const rankStr = named && r ? `${formatRank(r, uiLang)} ${t.players}` : t.syncPending;
-          ui.showGameOver(m, best, isRecord, daily, rankStr, world.maxCombo);
+          ui.showGameOver(m, best, isRecord, daily, rankStr, world.maxCombo, onRevive);
         });
       }
     }

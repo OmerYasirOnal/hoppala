@@ -54,7 +54,7 @@ export function createUI(
   handlers: { onPlay(mode: GameMode): void; onShare(): void; onToggleMute(): boolean; onLeaderboard(): void; onSettings(): void; onZones(): void; onPause(): void },
 ): {
   showMenu(best: number, daily: { day: number; best: number }, rank?: string): void;
-  showGameOver(score: number, best: number, isRecord: boolean, daily?: { day: number; best: number }, rank?: string, bestCombo?: number): void;
+  showGameOver(score: number, best: number, isRecord: boolean, daily?: { day: number; best: number }, rank?: string, bestCombo?: number, onRevive?: (() => void) | null): void;
   showHud(daily?: { day: number }): void;
   setScore(m: number): void;
   setMuted(muted: boolean): void;
@@ -128,7 +128,7 @@ export function createUI(
     panel.append(button(`⚙ ${t.settings}`, true, handlers.onSettings));
   }
 
-  function showGameOver(score: number, best: number, isRecord: boolean, daily?: { day: number; best: number }, rank?: string, bestCombo = 0): void {
+  function showGameOver(score: number, best: number, isRecord: boolean, daily?: { day: number; best: number }, rank?: string, bestCombo = 0, onRevive?: (() => void) | null): void {
     clearCombo();
     pauseBtn.classList.add('hidden');
     hud.classList.add('hidden');
@@ -146,6 +146,7 @@ export function createUI(
       ${rankLine}
       ${comboLine}
     `;
+    if (onRevive) panel.append(button(`📺 ${t.watchContinue}`, false, onRevive));
     panel.append(button(t.again, false, () => handlers.onPlay(daily ? 'daily' : 'free')));
     panel.append(button(`🏆 ${t.leaderboard}`, true, handlers.onLeaderboard));
     panel.append(button(t.share, true, handlers.onShare));
