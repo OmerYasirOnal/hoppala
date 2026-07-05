@@ -55,6 +55,7 @@ setLang(uiLang); // re-point the string table to the persisted override before c
 let rng: Rng = mulberry32(Date.now() >>> 0);
 let world: World = createWorld(rng, renderer.viewHeight());
 let playing = false;
+let paused = false;
 let recordCelebrated = false;
 let overGen = 0;
 let firstRun = !save.onboarded;
@@ -145,6 +146,7 @@ const ui = createUI(uiRoot, {
     drag.reset(TUNING.viewWidth / 2);
     recordCelebrated = false;
     playing = true;
+    loop.start(); // idempotent (loop guards double-start) — guarantee the rAF loop runs whenever a run begins
     runZone = 0;
     ui.showHud(m === 'daily' ? { day: runId!.day } : undefined);
     if (firstRun) {
@@ -168,7 +170,7 @@ const ui = createUI(uiRoot, {
   onSettings() {
     const s = loadSave();
     renderSettings(uiRoot, {
-      muted, haptics: s.haptics ?? true, lang: s.lang ?? 'system', name: online.name(), native: isNative, version: '1.6.0',
+      muted, haptics: s.haptics ?? true, lang: s.lang ?? 'system', name: online.name(), native: isNative, version: '1.7.0',
       sensitivity,
     }, {
       onMute: (m) => { muted = m; sfx.setMuted(m); saveMuted(m); ui.setMuted(m); },
@@ -185,6 +187,23 @@ const ui = createUI(uiRoot, {
       rows: ZONES.map((z, i) => ({ key: z.key, name: zoneLabel(z.key), meters: z.meters, color: `rgb(${z.top[0]},${z.top[1]},${z.top[2]})`, reached: i <= maxZone })),
       reachedCount: maxZone + 1,
       onClose: () => {},
+    });
+  },
+  onPause() {
+    if (!playing || paused) return;
+    paused = true;
+    loop.stop();
+    ui.showPause({
+      onResume: () => {
+        paused = false;
+        loop.start();
+      },
+      onMainMenu: () => {
+        paused = false;
+        playing = false;
+        loop.start(); // onPause stopped the loop; restart it so the menu renders and the next run isn't soft-locked
+        ui.showMenu(best, { day: dayNumber(new Date()), best: dailyBestFor(dateKey(new Date())) });
+      },
     });
   },
 });
@@ -211,12 +230,22 @@ const loop = createLoop({
   update: () => {
     if (!playing) return;
     step(world, drag.targetX(), rng);
+    const foot = world.player.y + TUNING.playerR;
     for (const e of world.events) {
       bridge.onEvent(e);
       if (e !== 'gameover' && e !== 'stomp') sfx.play(e);
+      if (e === 'bounce') renderer.burst(world.player.x, foot, 'dust', world.time);
+      else if (e === 'spring') renderer.burst(world.player.x, foot, 'spring', world.time);
+      else if (e === 'break') {
+        renderer.burst(world.player.x, foot, 'break', world.time);
+        renderer.crumble(world.player.x, foot, TUNING.platformW, world.time);
+      }
+      else if (e === 'boost') renderer.burst(world.player.x, foot, 'boost', world.time);
     }
     for (const fx of world.stompFx) {
       renderer.addPop(fx.x, fx.y, fx.bonus, fx.combo, world.time);
+      renderer.burst(fx.x, fx.y, 'stomp', world.time);
+      renderer.shake(2 + Math.min(fx.combo, 6), world.time);
       sfx.play('stomp', 1 + Math.min(fx.combo, 8) * 0.1);
     }
     const m = meters();
@@ -275,5 +304,5 @@ loop.start();
 
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) loop.stop();
-  else loop.start();
+  else if (!paused) loop.start();
 });

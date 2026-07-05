@@ -12,6 +12,7 @@ const STRINGS = {
     sensitivity: 'Hassasiyet',
     zones: 'Bölgeler', reached: 'Ulaşılan', zone_meadow: 'Çayır', zone_sky: 'Gökyüzü', zone_clouds: 'Bulutlar', zone_dawn: 'Şafak', zone_aurora: 'Kutup', zone_strato: 'Stratosfer', zone_space: 'Uzay', zone_cosmos: 'Kozmos', newZone: 'Yeni bölge',
     bestCombo: 'En yüksek combo',
+    pause: 'Durdur', resume: 'Devam', mainMenu: 'Ana menü', paused: 'Durduruldu',
   },
   en: {
     title: 'Hoppala', play: 'Play', again: 'Again', share: 'Share', best: 'Best', record: 'New record!',
@@ -24,6 +25,7 @@ const STRINGS = {
     sensitivity: 'Sensitivity',
     zones: 'Zones', reached: 'Reached', zone_meadow: 'Meadow', zone_sky: 'Sky', zone_clouds: 'Clouds', zone_dawn: 'Dawn', zone_aurora: 'Aurora', zone_strato: 'Stratosphere', zone_space: 'Space', zone_cosmos: 'Cosmos', newZone: 'New zone',
     bestCombo: 'Best combo',
+    pause: 'Pause', resume: 'Resume', mainMenu: 'Main menu', paused: 'Paused',
   },
 } as const;
 
@@ -45,7 +47,7 @@ export function zoneLabel(key: string): string {
 
 export function createUI(
   root: HTMLElement,
-  handlers: { onPlay(mode: GameMode): void; onShare(): void; onToggleMute(): boolean; onLeaderboard(): void; onSettings(): void; onZones(): void },
+  handlers: { onPlay(mode: GameMode): void; onShare(): void; onToggleMute(): boolean; onLeaderboard(): void; onSettings(): void; onZones(): void; onPause(): void },
 ): {
   showMenu(best: number, daily: { day: number; best: number }, rank?: string): void;
   showGameOver(score: number, best: number, isRecord: boolean, daily?: { day: number; best: number }, rank?: string, bestCombo?: number): void;
@@ -59,11 +61,13 @@ export function createUI(
   showZoneCelebration(name: string, color: string): void;
   setCombo(combo: number, fraction: number): void;
   clearCombo(): void;
+  showPause(cbs: { onResume(): void; onMainMenu(): void }): void;
 } {
   root.innerHTML = `
     <div class="hud hidden"><span id="score">0 m</span><span id="zone" class="zone"></span><span id="daybadge" class="daybadge hidden"></span><div id="zonebar" class="zonebar"><div id="zonebar-fill"></div></div></div>
     <div class="combo-meter" id="combo-meter"><span id="combo-x"></span><div class="combo-bar"><div id="combo-fill"></div></div></div>
     <button class="mute" id="mute" aria-label="sound">🔊</button>
+    <button class="pause hidden" id="pause" aria-label="pause">⏸</button>
     <div class="panel" id="panel"></div>
     <div class="toast hidden" id="toast"></div>
   `;
@@ -85,6 +89,12 @@ export function createUI(
     setMuted(handlers.onToggleMute());
   });
 
+  const pauseBtn = root.querySelector('#pause') as HTMLButtonElement;
+  pauseBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    handlers.onPause();
+  });
+
   function setMuted(muted: boolean): void {
     muteBtn.textContent = muted ? '🔇' : '🔊';
   }
@@ -101,7 +111,9 @@ export function createUI(
   }
 
   function showMenu(best: number, daily: { day: number; best: number }, rank?: string): void {
+    clearCombo();
     hud.classList.add('hidden');
+    pauseBtn.classList.add('hidden');
     panel.classList.remove('hidden');
     const rankLine = rank ? `<div class="sub">${t.best}: ${best} m · ${rank}</div>` : best > 0 ? `<div class="sub">${t.best}: ${best} m</div>` : '';
     panel.innerHTML = `<h1>${t.title}</h1><div class="sub">${t.hint}</div>${rankLine}${daily.best > 0 ? `<div class="sub">${t.dailyBest}: ${daily.best} m</div>` : ''}`;
@@ -114,6 +126,7 @@ export function createUI(
 
   function showGameOver(score: number, best: number, isRecord: boolean, daily?: { day: number; best: number }, rank?: string, bestCombo = 0): void {
     clearCombo();
+    pauseBtn.classList.add('hidden');
     hud.classList.add('hidden');
     panel.classList.remove('hidden');
     const subLine = isRecord
@@ -140,6 +153,7 @@ export function createUI(
     panel.classList.add('hidden');
     panel.innerHTML = '';
     hud.classList.remove('hidden');
+    pauseBtn.classList.remove('hidden');
     if (daily) {
       dayBadge.textContent = `#${daily.day}`;
       dayBadge.classList.remove('hidden');
@@ -197,6 +211,27 @@ export function createUI(
     setTimeout(() => c.remove(), 3000);
   }
 
+  function showPause(cbs: { onResume(): void; onMainMenu(): void }): void {
+    root.querySelector('.pause-overlay')?.remove();
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay pause-overlay';
+    overlay.innerHTML = `<div class="modal"><h2>${t.paused}</h2></div>`;
+    const modal = overlay.querySelector('.modal') as HTMLElement;
+    const resume = button(t.resume, false, () => {
+      overlay.remove();
+      cbs.onResume();
+    });
+    const menu = button(t.mainMenu, true, () => {
+      overlay.remove();
+      cbs.onMainMenu();
+    });
+    const actions = document.createElement('div');
+    actions.className = 'modal-actions';
+    actions.append(menu, resume);
+    modal.append(actions);
+    root.append(overlay);
+  }
+
   function setCombo(combo: number, fraction: number): void {
     comboMeter.classList.add('on');
     comboX.textContent = `×${combo}`;
@@ -225,5 +260,6 @@ export function createUI(
     showZoneCelebration,
     setCombo,
     clearCombo,
+    showPause,
   };
 }
