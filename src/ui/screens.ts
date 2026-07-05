@@ -10,6 +10,7 @@ const STRINGS = {
     resetConfirm: 'Tüm veriler silinsin mi?', offline: 'çevrimdışı', refresh: 'Yenile', loading: 'Yükleniyor…',
     close: 'Kapat', you: 'Sen', version: 'Sürüm', credits: 'Künye', invalidName: '3–16 karakter, uygun bir ad gir',
     sensitivity: 'Hassasiyet',
+    zones: 'Bölgeler', reached: 'Ulaşılan', zone_meadow: 'Çayır', zone_sky: 'Gökyüzü', zone_clouds: 'Bulutlar', zone_dawn: 'Şafak', zone_aurora: 'Kutup', zone_strato: 'Stratosfer', zone_space: 'Uzay', zone_cosmos: 'Kozmos', newZone: 'Yeni bölge',
   },
   en: {
     title: 'Hoppala', play: 'Play', again: 'Again', share: 'Share', best: 'Best', record: 'New record!',
@@ -20,6 +21,7 @@ const STRINGS = {
     resetConfirm: 'Erase all data?', offline: 'offline', refresh: 'Refresh', loading: 'Loading…',
     close: 'Close', you: 'You', version: 'Version', credits: 'Credits', invalidName: 'Enter a valid 3–16 char name',
     sensitivity: 'Sensitivity',
+    zones: 'Zones', reached: 'Reached', zone_meadow: 'Meadow', zone_sky: 'Sky', zone_clouds: 'Clouds', zone_dawn: 'Dawn', zone_aurora: 'Aurora', zone_strato: 'Stratosphere', zone_space: 'Space', zone_cosmos: 'Cosmos', newZone: 'New zone',
   },
 } as const;
 
@@ -34,9 +36,14 @@ export function setLang(l: 'tr' | 'en'): void {
   t = STRINGS[l];
 }
 
+/** Localized zone name for a zones.ts key. */
+export function zoneLabel(key: string): string {
+  return (t as Record<string, string>)[`zone_${key}`] ?? key;
+}
+
 export function createUI(
   root: HTMLElement,
-  handlers: { onPlay(mode: GameMode): void; onShare(): void; onToggleMute(): boolean; onLeaderboard(): void; onSettings(): void },
+  handlers: { onPlay(mode: GameMode): void; onShare(): void; onToggleMute(): boolean; onLeaderboard(): void; onSettings(): void; onZones(): void },
 ): {
   showMenu(best: number, daily: { day: number; best: number }, rank?: string): void;
   showGameOver(score: number, best: number, isRecord: boolean, daily?: { day: number; best: number }, rank?: string): void;
@@ -45,9 +52,12 @@ export function createUI(
   setMuted(muted: boolean): void;
   toast(msg: string): void;
   showOnboardingTip(): void;
+  setZone(name: string, progress: number): void;
+  showZoneBanner(name: string): void;
+  showZoneCelebration(name: string, color: string): void;
 } {
   root.innerHTML = `
-    <div class="hud hidden"><span id="score">0 m</span><span id="daybadge" class="daybadge hidden"></span></div>
+    <div class="hud hidden"><span id="score">0 m</span><span id="zone" class="zone"></span><span id="daybadge" class="daybadge hidden"></span><div id="zonebar" class="zonebar"><div id="zonebar-fill"></div></div></div>
     <button class="mute" id="mute" aria-label="sound">🔊</button>
     <div class="panel" id="panel"></div>
     <div class="toast hidden" id="toast"></div>
@@ -55,6 +65,8 @@ export function createUI(
   const hud = root.querySelector('.hud') as HTMLElement;
   const scoreEl = root.querySelector('#score') as HTMLElement;
   const dayBadge = root.querySelector('#daybadge') as HTMLElement;
+  const zoneEl = root.querySelector('#zone') as HTMLElement;
+  const zoneFill = root.querySelector('#zonebar-fill') as HTMLElement;
   const panel = root.querySelector('#panel') as HTMLElement;
   const muteBtn = root.querySelector('#mute') as HTMLButtonElement;
   const toastEl = root.querySelector('#toast') as HTMLElement;
@@ -88,6 +100,7 @@ export function createUI(
     panel.append(button(t.free, false, () => handlers.onPlay('free')));
     panel.append(button(`${t.daily} #${daily.day}`, false, () => handlers.onPlay('daily')));
     panel.append(button(`🏆 ${t.leaderboard}`, true, handlers.onLeaderboard));
+    panel.append(button(`🗺️ ${t.zones}`, true, handlers.onZones));
     panel.append(button(`⚙ ${t.settings}`, true, handlers.onSettings));
   }
 
@@ -111,6 +124,7 @@ export function createUI(
   }
 
   function showHud(daily?: { day: number }): void {
+    setZone('', 0);
     panel.classList.add('hidden');
     panel.innerHTML = '';
     hud.classList.remove('hidden');
@@ -130,11 +144,40 @@ export function createUI(
 
   function showOnboardingTip(): void {
     const tip = document.createElement('div');
-    tip.className = 'coach-tip';
-    tip.textContent = `${t.hint} 👆`;
+    tip.className = 'coach-tip big';
+    tip.textContent = `👆 ${t.hint}`;
     root.append(tip);
-    setTimeout(() => tip.classList.add('fade'), 1400);
-    setTimeout(() => tip.remove(), 2400);
+    setTimeout(() => tip.classList.add('fade'), 2000);
+    setTimeout(() => tip.remove(), 2900);
+  }
+
+  let lastZoneName = '';
+  function setZone(name: string, progress: number): void {
+    if (name !== lastZoneName) {
+      lastZoneName = name;
+      zoneEl.textContent = name;
+    }
+    zoneFill.style.width = `${Math.round(progress * 100)}%`;
+  }
+
+  function showZoneBanner(name: string): void {
+    const b = document.createElement('div');
+    b.className = 'zone-banner';
+    b.textContent = name;
+    root.append(b);
+    setTimeout(() => b.classList.add('fade'), 900);
+    setTimeout(() => b.remove(), 1600);
+  }
+
+  function showZoneCelebration(name: string, color: string): void {
+    const c = document.createElement('div');
+    c.className = 'zone-celebrate';
+    c.style.setProperty('--zc', color);
+    c.innerHTML = `<div class="zc-card"><div class="zc-title">🎉 ${t.newZone}</div><div class="zc-name">${name}</div></div>`;
+    root.append(c);
+    c.addEventListener('click', () => c.remove());
+    setTimeout(() => c.classList.add('fade'), 2200);
+    setTimeout(() => c.remove(), 3000);
   }
 
   return {
@@ -149,5 +192,8 @@ export function createUI(
     setMuted,
     toast,
     showOnboardingTip,
+    setZone,
+    showZoneBanner,
+    showZoneCelebration,
   };
 }
