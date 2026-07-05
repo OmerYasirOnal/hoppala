@@ -58,6 +58,7 @@ let world: World = createWorld(rng, renderer.viewHeight());
 let playing = false;
 let paused = false;
 let revivesUsed = 0;
+let reviving = false; // in-flight guard: a second tap must not stack a second ad overlay
 let recordCelebrated = false;
 let overGen = 0;
 let firstRun = !save.onboarded;
@@ -232,14 +233,19 @@ window.addEventListener('online', () => void online.init()); // retry auth if ne
 
 /** Ad → revive → resume the same run. Guarded against a stale game-over generation. */
 async function doRevive(gen: number): Promise<void> {
-  if (gen !== overGen || playing) return; // a new run already started
-  const rewarded = bridge.showRewardedAd ? await bridge.showRewardedAd() : await showRewardedAdStub(uiRoot);
-  if (!rewarded || gen !== overGen || playing) return;
-  revivesUsed++;
-  revive(world);
-  playing = true;
-  loop.start();
-  ui.showHud();
+  if (gen !== overGen || playing || reviving) return; // stale, resumed, or an ad is already in flight
+  reviving = true;
+  try {
+    const rewarded = bridge.showRewardedAd ? await bridge.showRewardedAd() : await showRewardedAdStub(uiRoot);
+    if (!rewarded || gen !== overGen || playing) return;
+    revivesUsed++;
+    revive(world);
+    playing = true;
+    loop.start();
+    ui.showHud();
+  } finally {
+    reviving = false;
+  }
 }
 
 const loop = createLoop({
