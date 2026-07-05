@@ -7,6 +7,7 @@ export interface SettingsState {
   name: string | null;
   native: boolean; // haptics row only shown on native
   version: string;
+  sensitivity: number;
 }
 
 export interface SettingsCallbacks {
@@ -16,6 +17,7 @@ export interface SettingsCallbacks {
   onEditName(): void;
   onReset(): void;
   onClose(): void;
+  onSensitivity(n: number): void;
 }
 
 /** Renders the settings overlay. Replaces any existing settings overlay under root. */
@@ -35,6 +37,7 @@ export function renderSettings(root: HTMLElement, state: SettingsState, cbs: Set
           <option value="en" ${state.lang === 'en' ? 'selected' : ''}>English</option>
         </select>
       </label>
+      <label class="row"><span>${t.sensitivity}</span><input type="range" id="set-sens" min="0.5" max="2" step="0.1" value="${state.sensitivity}" /></label>
       <div class="row"><span>${t.nickname}</span><button class="ghost" id="set-name">${state.name ?? '—'}</button></div>
       <div class="row"><span>${t.version}</span><span class="dim">${state.version}</span></div>
       <div class="row"><span>${t.credits}</span><span class="dim">Hoppala · vanilla TS</span></div>
@@ -51,6 +54,9 @@ export function renderSettings(root: HTMLElement, state: SettingsState, cbs: Set
   hapt?.addEventListener('change', (e) => cbs.onHaptics((e.target as HTMLInputElement).checked));
   (overlay.querySelector('#set-lang') as HTMLSelectElement).addEventListener('change', (e) => {
     cbs.onLang((e.target as HTMLSelectElement).value as 'tr' | 'en' | 'system');
+  });
+  (overlay.querySelector('#set-sens') as HTMLInputElement).addEventListener('input', (e) => {
+    cbs.onSensitivity(parseFloat((e.target as HTMLInputElement).value));
   });
   (overlay.querySelector('#set-name') as HTMLButtonElement).addEventListener('click', cbs.onEditName);
   (overlay.querySelector('#set-reset') as HTMLButtonElement).addEventListener('click', () => {

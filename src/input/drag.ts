@@ -6,6 +6,7 @@ export function attachDrag(
   el: HTMLElement,
   logicalWidth: number,
   measureEl: HTMLElement = el,
+  sensitivity: () => number = () => 1,
 ): { targetX(): number; reset(x: number): void } {
   let target = logicalWidth / 2;
   let lastClientX: number | null = null;
@@ -25,7 +26,7 @@ export function attachDrag(
   });
   el.addEventListener('pointermove', (e) => {
     if (e.pointerId !== activePointerId || lastClientX === null) return;
-    target += (e.clientX - lastClientX) * scale();
+    target += (e.clientX - lastClientX) * scale() * sensitivity();
     lastClientX = e.clientX;
   });
   const end = (e: PointerEvent) => {

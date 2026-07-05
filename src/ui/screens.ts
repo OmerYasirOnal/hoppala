@@ -9,6 +9,7 @@ const STRINGS = {
     enterName: 'Takma adını seç', save: 'Kaydet', cancel: 'Vazgeç', reset: 'Verileri sıfırla',
     resetConfirm: 'Tüm veriler silinsin mi?', offline: 'çevrimdışı', refresh: 'Yenile', loading: 'Yükleniyor…',
     close: 'Kapat', you: 'Sen', version: 'Sürüm', credits: 'Künye', invalidName: '3–16 karakter, uygun bir ad gir',
+    sensitivity: 'Hassasiyet',
   },
   en: {
     title: 'Hoppala', play: 'Play', again: 'Again', share: 'Share', best: 'Best', record: 'New record!',
@@ -18,6 +19,7 @@ const STRINGS = {
     enterName: 'Pick your nickname', save: 'Save', cancel: 'Cancel', reset: 'Reset data',
     resetConfirm: 'Erase all data?', offline: 'offline', refresh: 'Refresh', loading: 'Loading…',
     close: 'Close', you: 'You', version: 'Version', credits: 'Credits', invalidName: 'Enter a valid 3–16 char name',
+    sensitivity: 'Sensitivity',
   },
 } as const;
 

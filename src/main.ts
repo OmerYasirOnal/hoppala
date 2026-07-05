@@ -7,7 +7,7 @@ import { attachDrag } from './input/drag';
 import { createRenderer } from './render/renderer';
 import { createSfx } from './audio/sfx';
 import { createUI, t } from './ui/screens';
-import { loadSave, saveBest, saveMuted, saveDailyBest } from './storage';
+import { loadSave, saveBest, saveMuted, saveDailyBest, saveSensitivity } from './storage';
 import { dayNumber, dateKey, runIdentity, type RunIdentity } from './core/daily';
 import { bridge, type GameMode } from './platform/bridge';
 import { online } from './online';
@@ -35,7 +35,7 @@ window.addEventListener('resize', () => {
   }
 });
 
-const drag = attachDrag(app, TUNING.viewWidth, canvas);
+const drag = attachDrag(app, TUNING.viewWidth, canvas, () => loadSave().sensitivity ?? 1);
 const sfx = createSfx();
 const save = loadSave();
 let muted = save.muted;
@@ -162,6 +162,7 @@ const ui = createUI(uiRoot, {
     const s = loadSave();
     renderSettings(uiRoot, {
       muted, haptics: s.haptics ?? true, lang: s.lang ?? 'system', name: online.name(), native: isNative, version: '1.2.0',
+      sensitivity: s.sensitivity ?? 1,
     }, {
       onMute: (m) => { muted = m; sfx.setMuted(m); saveMuted(m); ui.setMuted(m); },
       onHaptics: (on) => saveHaptics(on),
@@ -169,6 +170,7 @@ const ui = createUI(uiRoot, {
       onEditName: () => { void online.editName((current) => askNickname(uiRoot, current)); },
       onReset: () => { resetSave(); location.reload(); },
       onClose: () => {},
+      onSensitivity: (n) => saveSensitivity(n),
     });
   },
 });

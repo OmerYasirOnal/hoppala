@@ -98,3 +98,4 @@ button.danger { color: #ff8a8a; }
   transition: opacity 0.8s;
 }
 .coach-tip.fade { opacity: 0; }
+.modal input[type="range"] { width: 140px; accent-color: #2b6fff; }
