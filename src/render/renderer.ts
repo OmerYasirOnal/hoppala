@@ -1,27 +1,20 @@
 import { TUNING, type Platform, type World } from '../game/types';
 import { phantomVisible } from '../game/sim';
-
-/** Altitude atmosphere: [altitude px, top color, bottom color] stops, lerped. */
-const SKY: Array<[number, [number, number, number], [number, number, number]]> = [
-  [0, [22, 42, 74], [11, 18, 32]],       // ground night-blue
-  [3000, [40, 34, 84], [18, 14, 44]],    // dusk violet
-  [8000, [8, 10, 30], [2, 3, 12]],       // deep space
-];
+import { ZONES, zoneIndexAt, zoneProgress } from '../game/zones';
 
 function lerp(a: number, b: number, t: number): number {
   return a + (b - a) * t;
 }
 
 function skyAt(altitude: number): { top: string; bottom: string; stars: number } {
-  let i = 0;
-  while (i < SKY.length - 1 && altitude > SKY[i + 1]![0]) i++;
-  const lo = SKY[i]!;
-  const hi = SKY[Math.min(i + 1, SKY.length - 1)]!;
-  const span = hi[0] - lo[0] || 1;
-  const t = Math.min(1, Math.max(0, (altitude - lo[0]) / span));
+  const meters = altitude / 10;
+  const i = zoneIndexAt(meters);
+  const lo = ZONES[i]!;
+  const hi = ZONES[Math.min(i + 1, ZONES.length - 1)]!;
+  const t = zoneProgress(meters);
   const c = (a: [number, number, number], b: [number, number, number]) =>
     `rgb(${lerp(a[0], b[0], t) | 0},${lerp(a[1], b[1], t) | 0},${lerp(a[2], b[2], t) | 0})`;
-  return { top: c(lo[1], hi[1]), bottom: c(lo[2], hi[2]), stars: Math.min(1, altitude / 6000) };
+  return { top: c(lo.top, hi.top), bottom: c(lo.bottom, hi.bottom), stars: Math.min(1, Math.max(0, (meters - 700) / 1000)) };
 }
 
 const PLATFORM_COLORS: Record<Platform['kind'], string> = {
