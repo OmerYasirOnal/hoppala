@@ -133,3 +133,6 @@ button.danger { color: #ff8a8a; }
 #combo-x { font-weight: 800; text-shadow: 0 2px 10px rgba(0, 0, 0, 0.55); line-height: 1; display: block; }
 .combo-bar { width: 64px; height: 4px; margin: 4px auto 0; background: rgba(255, 255, 255, 0.18); border-radius: 2px; overflow: hidden; }
 #combo-fill { height: 100%; width: 100%; background: #ffd23e; transition: width 0.1s linear; }
+.ad-modal { text-align: center; width: min(300px, 100%); }
+.ad-badge { font-size: 15px; color: #9fb0d4; margin-bottom: 12px; }
+.ad-count { font-size: 44px; font-weight: 800; color: #ffd23e; line-height: 1; }

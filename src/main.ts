@@ -1,7 +1,7 @@
 import './styles.css';
 import { createLoop } from './core/loop';
 import { mulberry32, type Rng } from './core/rng';
-import { createWorld, step } from './game/sim';
+import { createWorld, step, revive } from './game/sim';
 import { TUNING, type World } from './game/types';
 import { attachDrag } from './input/drag';
 import { createRenderer } from './render/renderer';
@@ -19,6 +19,7 @@ import { saveOnboarded, saveLang, saveHaptics, resetSave } from './storage';
 import { lang, setLang, zoneLabel } from './ui/screens';
 import { ZONES, zoneIndexAt, zoneProgress } from './game/zones';
 import { renderZones } from './ui/zones';
+import { showRewardedAdStub } from './ui/ad';
 
 const canvas = document.getElementById('game') as HTMLCanvasElement;
 const app = document.getElementById('app') as HTMLElement;
@@ -56,6 +57,8 @@ let rng: Rng = mulberry32(Date.now() >>> 0);
 let world: World = createWorld(rng, renderer.viewHeight());
 let playing = false;
 let paused = false;
+let revivesUsed = 0;
+let reviving = false; // in-flight guard: a second tap must not stack a second ad overlay
 let recordCelebrated = false;
 let overGen = 0;
 let firstRun = !save.onboarded;
@@ -145,6 +148,7 @@ const ui = createUI(uiRoot, {
     world = createWorld(rng, renderer.viewHeight());
     drag.reset(TUNING.viewWidth / 2);
     recordCelebrated = false;
+    revivesUsed = 0;
     playing = true;
     loop.start(); // idempotent (loop guards double-start) — guarantee the rAF loop runs whenever a run begins
     runZone = 0;
@@ -170,7 +174,7 @@ const ui = createUI(uiRoot, {
   onSettings() {
     const s = loadSave();
     renderSettings(uiRoot, {
-      muted, haptics: s.haptics ?? true, lang: s.lang ?? 'system', name: online.name(), native: isNative, version: '1.8.0',
+      muted, haptics: s.haptics ?? true, lang: s.lang ?? 'system', name: online.name(), native: isNative, version: '1.9.0',
       sensitivity,
     }, {
       onMute: (m) => { muted = m; sfx.setMuted(m); saveMuted(m); ui.setMuted(m); },
@@ -226,6 +230,23 @@ void online.init().then(async () => {
 });
 
 window.addEventListener('online', () => void online.init()); // retry auth if needed, then flush queued scores
+
+/** Ad → revive → resume the same run. Guarded against a stale game-over generation. */
+async function doRevive(gen: number): Promise<void> {
+  if (gen !== overGen || playing || reviving) return; // stale, resumed, or an ad is already in flight
+  reviving = true;
+  try {
+    const rewarded = bridge.showRewardedAd ? await bridge.showRewardedAd() : await showRewardedAdStub(uiRoot);
+    if (!rewarded || gen !== overGen || playing) return;
+    revivesUsed++;
+    revive(world);
+    playing = true;
+    loop.start();
+    ui.showHud();
+  } finally {
+    reviving = false;
+  }
+}
 
 const loop = createLoop({
   update: () => {
@@ -285,7 +306,9 @@ const loop = createLoop({
       bridge.submitScore(m, mode, runId?.day);
       const board = boardForRun(mode, runId?.key);
       const daily = mode === 'daily' && runId ? { day: runId.day, best: Math.max(runBestBaseline, m) } : undefined;
-      ui.showGameOver(m, best, isRecord, daily, undefined, world.maxCombo); // instant
+      const canRevive = mode === 'free' && revivesUsed < 1;
+      const onRevive = canRevive ? () => void doRevive(gen) : null;
+      ui.showGameOver(m, best, isRecord, daily, undefined, world.maxCombo, onRevive); // instant
       online.submit(board, m);
       if (mode === 'free' && isRecord) online.pushBest(m);
       if (online.enabled()) {
@@ -293,7 +316,7 @@ const loop = createLoop({
           if (gen !== overGen || playing) return; // player already moved on
           const named = !!online.name();
           const rankStr = named && r ? `${formatRank(r, uiLang)} ${t.players}` : t.syncPending;
-          ui.showGameOver(m, best, isRecord, daily, rankStr, world.maxCombo);
+          ui.showGameOver(m, best, isRecord, daily, rankStr, world.maxCombo, onRevive);
         });
       }
     }
