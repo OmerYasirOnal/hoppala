@@ -223,6 +223,7 @@ const loop = createLoop({
     for (const fx of world.stompFx) {
       renderer.addPop(fx.x, fx.y, fx.bonus, fx.combo, world.time);
       renderer.burst(fx.x, fx.y, 'stomp', world.time);
+      renderer.shake(2 + Math.min(fx.combo, 6), world.time);
       sfx.play('stomp', 1 + Math.min(fx.combo, 8) * 0.1);
     }
     const m = meters();

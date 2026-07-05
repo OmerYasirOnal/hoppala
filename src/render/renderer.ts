@@ -1,7 +1,7 @@
 import { TUNING, type Platform, type World } from '../game/types';
 import { phantomVisible } from '../game/sim';
 import { ZONES, zoneIndexAt, zoneProgress } from '../game/zones';
-import { particleAt, easeOutPulse, platformPalette, type Particle } from './fx';
+import { particleAt, easeOutPulse, platformPalette, shakeOffset, type Particle } from './fx';
 
 function lerp(a: number, b: number, t: number): number {
   return a + (b - a) * t;
@@ -32,6 +32,7 @@ export function createRenderer(canvas: HTMLCanvasElement): {
   viewHeight(): number;
   addPop(x: number, y: number, bonus: number, combo: number, time: number): void;
   burst(x: number, y: number, kind: 'dust' | 'spring' | 'break' | 'boost' | 'stomp', time: number): void;
+  shake(amp: number, time: number): void;
 } {
   const ctx = canvas.getContext('2d')!;
   let viewH = 700;
@@ -43,6 +44,9 @@ export function createRenderer(canvas: HTMLCanvasElement): {
   let prevPlayerVy = 0;
   let landPulseTime = -1;
   const breaks = new Map<number, number>(); // crumbling platform id -> sim time it broke
+  const SHAKE_MAX = 6; // world units — hard cap so it never disorients
+  let shakeAmp = 0;
+  let shakeStart = -1;
 
   function resize(): void {
     const parent = canvas.parentElement!;
@@ -198,6 +202,16 @@ export function createRenderer(canvas: HTMLCanvasElement): {
   }
 
   function draw(world: World, alpha = 1): void {
+    let sdx = 0;
+    let sdy = 0;
+    if (shakeStart >= 0) {
+      const o = shakeOffset(shakeAmp, world.time - shakeStart);
+      sdx = o.dx;
+      sdy = o.dy;
+    }
+    ctx.save();
+    ctx.translate(sdx, sdy);
+
     const camY = world.prevCameraY + (world.cameraY - world.prevCameraY) * alpha;
 
     const sky = skyAt(world.maxAltitude);
@@ -205,7 +219,7 @@ export function createRenderer(canvas: HTMLCanvasElement): {
     g.addColorStop(0, sky.top);
     g.addColorStop(1, sky.bottom);
     ctx.fillStyle = g;
-    ctx.fillRect(0, 0, TUNING.viewWidth, viewH);
+    ctx.fillRect(-SHAKE_MAX - 2, -SHAKE_MAX - 2, TUNING.viewWidth + 2 * SHAKE_MAX + 4, viewH + 2 * SHAKE_MAX + 4);
 
     if (sky.stars > 0.05) {
       ctx.fillStyle = `rgba(255,255,255,${0.5 * sky.stars})`;
@@ -327,6 +341,13 @@ export function createRenderer(canvas: HTMLCanvasElement): {
       ctx.fill();
     }
     ctx.globalAlpha = 1;
+
+    ctx.restore();
+  }
+
+  function shake(amp: number, time: number): void {
+    shakeAmp = Math.min(SHAKE_MAX, amp);
+    shakeStart = time;
   }
 
   return {
@@ -337,5 +358,6 @@ export function createRenderer(canvas: HTMLCanvasElement): {
       pops.push({ x, y, bonus, combo, spawnTime: time });
     },
     burst,
+    shake,
   };
 }
