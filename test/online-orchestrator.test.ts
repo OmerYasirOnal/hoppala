@@ -161,4 +161,13 @@ describe('createOnline', () => {
     expect(result).toBe('Neo');
     expect(online.name()).toBe('Neo');
   });
+
+  it('pushMaxZone writes the cloud save when ready', async () => {
+    const backend = fakeBackend();
+    const { deps } = fakeDeps({ makeBackend: async () => backend });
+    const online = createOnline(deps);
+    await online.init();
+    online.pushMaxZone(4);
+    expect(backend.saveCloudSave).toHaveBeenCalledWith({ maxZone: 4 });
+  });
 });

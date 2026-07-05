@@ -24,4 +24,9 @@ describe('mergeCloudSave', () => {
     const r2 = { name: 'B', best: 0, updatedAt: 200, dailyBest: { key: '2026-07-05', score: 3 } };
     expect(mergeCloudSave(l, r2).dailyBest).toEqual({ key: '2026-07-05', score: 3 });
   });
+  it('takes the max maxZone', () => {
+    expect(mergeCloudSave({ ...base, maxZone: 2 }, { name: 'B', best: 0, maxZone: 5, updatedAt: 50 }).maxZone).toBe(5);
+    expect(mergeCloudSave({ ...base, maxZone: 6 }, { name: 'B', best: 0, maxZone: 3, updatedAt: 500 }).maxZone).toBe(6);
+    expect(mergeCloudSave(base, { name: 'B', best: 0, updatedAt: 50 }).maxZone).toBe(0); // both absent → 0
+  });
 });

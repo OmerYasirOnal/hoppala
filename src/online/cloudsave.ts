@@ -21,6 +21,7 @@ export function mergeCloudSave(local: CloudSave, remote: CloudSave | null): Clou
     name,
     best: Math.max(local.best, remote.best),
     dailyBest,
+    maxZone: Math.max(local.maxZone ?? 0, remote.maxZone ?? 0),
     updatedAt: Math.max(local.updatedAt, remote.updatedAt),
   };
 }

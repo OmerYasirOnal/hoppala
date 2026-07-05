@@ -24,6 +24,7 @@ export interface Online {
   ensureName(ask: (suggested: string) => Promise<string | null>): Promise<string | null>;
   editName(ask: (current: string) => Promise<string | null>): Promise<string | null>;
   pushBest(best: number): void;
+  pushMaxZone(zone: number): void;
   flush(): void;
   ready(): boolean;
   enabled(): boolean;
@@ -157,6 +158,10 @@ export function createOnline(deps: OnlineDeps): Online {
           /* synchronous throw — ignore; pushBest is best-effort */
         }
       }
+    },
+
+    pushMaxZone(zone): void {
+      if (backend && ready) backend.saveCloudSave({ maxZone: zone }).catch(() => {});
     },
 
     flush(): void {

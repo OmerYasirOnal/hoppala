@@ -16,6 +16,7 @@ export interface CloudSave {
   name: string;
   best: number;
   dailyBest?: { key: string; score: number };
+  maxZone?: number;
   updatedAt: number;
 }
 
