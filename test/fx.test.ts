@@ -17,6 +17,12 @@ describe('particleAt', () => {
     const s = particleAt(P({ gravity: 0 }), 1.2); // age 0.2
     expect(s.x).toBeCloseTo(100 + 50 * 0.2);
   });
+  it('reports a stale (negative-age) particle as dead so the draw loop culls it', () => {
+    // e.g. a particle from a previous run whose spawnTime is ahead of the new run's world.time
+    const s = particleAt(P(), 0.5); // time 0.5 < spawnTime 1 → age -0.5
+    expect(s.dead).toBe(true);
+    expect(s.alpha).toBe(0);
+  });
   it('curves y downward under positive gravity (y-down world)', () => {
     const straight = particleAt(P({ vy: 0, gravity: 0 }), 1.3).y;
     const gravId = particleAt(P({ vy: 0, gravity: 600 }), 1.3).y;

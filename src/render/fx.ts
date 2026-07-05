@@ -16,7 +16,9 @@ export interface Particle {
 /** World-space position + alpha of a particle at absolute sim `time`. */
 export function particleAt(p: Particle, time: number): { x: number; y: number; alpha: number; dead: boolean } {
   const age = time - p.spawnTime;
-  if (age <= 0) return { x: p.x0, y: p.y0, alpha: 1, dead: false };
+  // negative age = stale (e.g. the pool survived a run restart, where world.time resets to 0):
+  // report dead so the draw loop culls it, matching how the pops loop already handles age < 0.
+  if (age < 0) return { x: p.x0, y: p.y0, alpha: 0, dead: true };
   const x = p.x0 + p.vx * age;
   const y = p.y0 + p.vy * age + 0.5 * p.gravity * age * age;
   const alpha = Math.max(0, 1 - age / p.life);

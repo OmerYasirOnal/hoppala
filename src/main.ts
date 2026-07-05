@@ -236,7 +236,10 @@ const loop = createLoop({
       if (e !== 'gameover' && e !== 'stomp') sfx.play(e);
       if (e === 'bounce') renderer.burst(world.player.x, foot, 'dust', world.time);
       else if (e === 'spring') renderer.burst(world.player.x, foot, 'spring', world.time);
-      else if (e === 'break') renderer.burst(world.player.x, foot, 'break', world.time);
+      else if (e === 'break') {
+        renderer.burst(world.player.x, foot, 'break', world.time);
+        renderer.crumble(world.player.x, foot, TUNING.platformW, world.time);
+      }
       else if (e === 'boost') renderer.burst(world.player.x, foot, 'boost', world.time);
     }
     for (const fx of world.stompFx) {

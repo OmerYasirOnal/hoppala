@@ -32,6 +32,7 @@ export function createRenderer(canvas: HTMLCanvasElement): {
   viewHeight(): number;
   addPop(x: number, y: number, bonus: number, combo: number, time: number): void;
   burst(x: number, y: number, kind: 'dust' | 'spring' | 'break' | 'boost' | 'stomp', time: number): void;
+  crumble(x: number, y: number, w: number, time: number): void;
   shake(amp: number, time: number): void;
 } {
   const ctx = canvas.getContext('2d')!;
@@ -43,7 +44,10 @@ export function createRenderer(canvas: HTMLCanvasElement): {
   const MAX_PARTICLES = 120;
   let prevPlayerVy = 0;
   let landPulseTime = -1;
-  const breaks = new Map<number, number>(); // crumbling platform id -> sim time it broke
+  // crumbling slabs that just broke: a renderer-owned drop-fade, fed by the 'break' event
+  // (the sim removes the platform the same step, so it can't come from world.platforms).
+  const crumbles: { x: number; y: number; w: number; spawnTime: number }[] = [];
+  const CRUMBLE_DUR = 0.35;
   const SHAKE_MAX = 6; // world units — hard cap so it never disorients
   let shakeAmp = 0;
   let shakeStart = -1;
@@ -88,6 +92,11 @@ export function createRenderer(canvas: HTMLCanvasElement): {
     }
   }
 
+  function crumble(x: number, y: number, w: number, time: number): void {
+    if (crumbles.length >= 24) crumbles.shift();
+    crumbles.push({ x, y, w, spawnTime: time });
+  }
+
   function drawDecor(world: World, camY: number): void {
     // soft drifting clouds low in the climb; fade out by the higher zones
     const zi = zoneIndexAt(world.maxAltitude / 10);
@@ -107,19 +116,13 @@ export function createRenderer(canvas: HTMLCanvasElement): {
   }
 
   function drawPlatform(p: Platform, camY: number, time: number, zTop: readonly [number, number, number]): void {
-    // crumbling: track the break moment and play a short drop-fade instead of vanishing
-    let drop = 0;
-    let fade = 1;
-    if (p.broken) {
-      if (!breaks.has(p.id)) breaks.set(p.id, time);
-      const age = time - breaks.get(p.id)!;
-      if (age > 0.35) return; // fully gone
-      drop = age * 60;
-      fade = 1 - age / 0.35;
-    }
-    const y = p.y - camY + drop;
+    // sim.ts culls broken platforms in the same step() that sets broken=true, so this never
+    // renders a broken slab — the crumble drop-fade is drawn separately from the 'break' event
+    // (renderer.crumble / drawCrumbles), which does NOT need the platform to survive.
+    if (p.broken) return;
+    const y = p.y - camY;
 
-    let alpha = fade;
+    let alpha = 1;
     if (p.kind === 'phantom') {
       const cycle = TUNING.phantomOn + TUNING.phantomOff;
       const tt = (((time + p.phase) % cycle) + cycle) % cycle;
@@ -254,6 +257,24 @@ export function createRenderer(canvas: HTMLCanvasElement): {
     const zt = ZONES[zoneIndexAt(world.maxAltitude / 10)]!.top;
     for (const p of world.platforms) drawPlatform(p, camY, world.time, zt);
 
+    // crumble drop-fade: a slab that just broke drops and fades over CRUMBLE_DUR, then is culled
+    for (let i = crumbles.length - 1; i >= 0; i--) {
+      const cr = crumbles[i]!;
+      const age = world.time - cr.spawnTime;
+      if (age < 0 || age > CRUMBLE_DUR) {
+        crumbles.splice(i, 1);
+        continue;
+      }
+      const t = age / CRUMBLE_DUR;
+      const pal = platformPalette(zt, 'crumbling');
+      ctx.globalAlpha = 1 - t;
+      ctx.fillStyle = pal.body;
+      ctx.beginPath();
+      ctx.roundRect(cr.x - cr.w / 2, cr.y - camY + t * 40, cr.w, TUNING.platformH, 7);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+
     for (const pk of world.pickups) {
       if (pk.taken) continue;
       const bob = Math.sin(world.time * 4 + pk.id) * 2;
@@ -378,6 +399,7 @@ export function createRenderer(canvas: HTMLCanvasElement): {
       pops.push({ x, y, bonus, combo, spawnTime: time });
     },
     burst,
+    crumble,
     shake,
   };
 }
