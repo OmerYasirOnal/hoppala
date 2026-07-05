@@ -29,11 +29,13 @@ export function createRenderer(canvas: HTMLCanvasElement): {
   resize(): void;
   draw(world: World, alpha?: number): void;
   viewHeight(): number;
+  addPop(x: number, y: number, bonus: number, combo: number, time: number): void;
 } {
   const ctx = canvas.getContext('2d')!;
   let viewH = 700;
   let cssW = 400;
   let cssH = 700;
+  const pops: { x: number; y: number; bonus: number; combo: number; spawnTime: number }[] = [];
 
   function resize(): void {
     const parent = canvas.parentElement!;
@@ -193,7 +195,34 @@ export function createRenderer(canvas: HTMLCanvasElement): {
       ctx.lineTo(px, py - camY + TUNING.playerR + 14 + Math.sin(world.time * 30) * 3);
       ctx.fill();
     }
+
+    const POP_DURATION = 0.8;
+    ctx.textAlign = 'center';
+    for (let i = pops.length - 1; i >= 0; i--) {
+      const pop = pops[i]!;
+      const age = world.time - pop.spawnTime;
+      if (age < 0 || age > POP_DURATION) {
+        pops.splice(i, 1);
+        continue;
+      }
+      const t = age / POP_DURATION;
+      const px = (((pop.x % TUNING.viewWidth) + TUNING.viewWidth) % TUNING.viewWidth);
+      const py = pop.y - camY - t * 26; // rise
+      ctx.globalAlpha = 1 - t;
+      ctx.fillStyle = pop.combo >= 3 ? '#ffd23e' : '#7ee08a';
+      ctx.font = `bold ${14 + Math.min(pop.combo, 6) * 2}px system-ui, sans-serif`;
+      ctx.fillText(`+${pop.bonus}${pop.combo >= 2 ? ` ×${pop.combo}` : ''}`, px, py);
+    }
+    ctx.globalAlpha = 1;
+    ctx.textAlign = 'left';
   }
 
-  return { resize, draw, viewHeight: () => viewH };
+  return {
+    resize,
+    draw,
+    viewHeight: () => viewH,
+    addPop(x: number, y: number, bonus: number, combo: number, time: number): void {
+      pops.push({ x, y, bonus, combo, spawnTime: time });
+    },
+  };
 }
