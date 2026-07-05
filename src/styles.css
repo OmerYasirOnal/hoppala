@@ -110,3 +110,9 @@ button.danger { color: #ff8a8a; }
 .zc-title { font-size: 15px; color: #eaf0ff; opacity: 0.9; }
 .zc-name { font-size: 26px; font-weight: 800; color: #fff; margin-top: 4px; }
 .coach-tip.big { font-size: 18px; font-weight: 700; padding: 14px 22px; }
+.zlist { max-height: 56vh; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
+.zrow { display: grid; grid-template-columns: 18px 1fr auto; align-items: center; gap: 10px; padding: 9px 6px; border-radius: 8px; }
+.zrow.locked { opacity: 0.5; }
+.zdot { width: 14px; height: 14px; border-radius: 50%; }
+.zname { font-weight: 600; }
+.zmeta { color: #9fb0d4; font-variant-numeric: tabular-nums; }
