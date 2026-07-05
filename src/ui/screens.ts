@@ -113,6 +113,7 @@ export function createUI(
   }
 
   function showGameOver(score: number, best: number, isRecord: boolean, daily?: { day: number; best: number }, rank?: string, bestCombo = 0): void {
+    clearCombo();
     hud.classList.add('hidden');
     panel.classList.remove('hidden');
     const subLine = isRecord
