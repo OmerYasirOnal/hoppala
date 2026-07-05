@@ -28,6 +28,7 @@ function overlapsX(px: number, plat: Platform): boolean {
 /** Update the stomp combo + score bonus and record the kill for the score pop. */
 function registerStomp(world: World, e: Enemy): void {
   world.combo = world.time <= world.comboEndsAt ? world.combo + 1 : 1;
+  world.maxCombo = Math.max(world.maxCombo, world.combo);
   world.comboEndsAt = world.time + TUNING.comboWindow;
   const bonus = TUNING.stompBonus * world.combo;
   world.stompBonus += bonus;
@@ -60,6 +61,7 @@ export function createWorld(rng: Rng, viewHeight: number): World {
     pickups: [],
     enemies: [],
     combo: 0,
+    maxCombo: 0,
     stompBonus: 0,
     comboEndsAt: 0,
     stompFx: [],

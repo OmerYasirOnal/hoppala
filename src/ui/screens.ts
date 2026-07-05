@@ -11,6 +11,7 @@ const STRINGS = {
     close: 'Kapat', you: 'Sen', version: 'Sürüm', credits: 'Künye', invalidName: '3–16 karakter, uygun bir ad gir',
     sensitivity: 'Hassasiyet',
     zones: 'Bölgeler', reached: 'Ulaşılan', zone_meadow: 'Çayır', zone_sky: 'Gökyüzü', zone_clouds: 'Bulutlar', zone_dawn: 'Şafak', zone_aurora: 'Kutup', zone_strato: 'Stratosfer', zone_space: 'Uzay', zone_cosmos: 'Kozmos', newZone: 'Yeni bölge',
+    bestCombo: 'En yüksek combo',
   },
   en: {
     title: 'Hoppala', play: 'Play', again: 'Again', share: 'Share', best: 'Best', record: 'New record!',
@@ -22,6 +23,7 @@ const STRINGS = {
     close: 'Close', you: 'You', version: 'Version', credits: 'Credits', invalidName: 'Enter a valid 3–16 char name',
     sensitivity: 'Sensitivity',
     zones: 'Zones', reached: 'Reached', zone_meadow: 'Meadow', zone_sky: 'Sky', zone_clouds: 'Clouds', zone_dawn: 'Dawn', zone_aurora: 'Aurora', zone_strato: 'Stratosphere', zone_space: 'Space', zone_cosmos: 'Cosmos', newZone: 'New zone',
+    bestCombo: 'Best combo',
   },
 } as const;
 
@@ -46,7 +48,7 @@ export function createUI(
   handlers: { onPlay(mode: GameMode): void; onShare(): void; onToggleMute(): boolean; onLeaderboard(): void; onSettings(): void; onZones(): void },
 ): {
   showMenu(best: number, daily: { day: number; best: number }, rank?: string): void;
-  showGameOver(score: number, best: number, isRecord: boolean, daily?: { day: number; best: number }, rank?: string): void;
+  showGameOver(score: number, best: number, isRecord: boolean, daily?: { day: number; best: number }, rank?: string, bestCombo?: number): void;
   showHud(daily?: { day: number }): void;
   setScore(m: number): void;
   setMuted(muted: boolean): void;
@@ -55,9 +57,12 @@ export function createUI(
   setZone(name: string, progress: number): void;
   showZoneBanner(name: string): void;
   showZoneCelebration(name: string, color: string): void;
+  setCombo(combo: number, fraction: number): void;
+  clearCombo(): void;
 } {
   root.innerHTML = `
     <div class="hud hidden"><span id="score">0 m</span><span id="zone" class="zone"></span><span id="daybadge" class="daybadge hidden"></span><div id="zonebar" class="zonebar"><div id="zonebar-fill"></div></div></div>
+    <div class="combo-meter" id="combo-meter"><span id="combo-x"></span><div class="combo-bar"><div id="combo-fill"></div></div></div>
     <button class="mute" id="mute" aria-label="sound">🔊</button>
     <div class="panel" id="panel"></div>
     <div class="toast hidden" id="toast"></div>
@@ -67,6 +72,9 @@ export function createUI(
   const dayBadge = root.querySelector('#daybadge') as HTMLElement;
   const zoneEl = root.querySelector('#zone') as HTMLElement;
   const zoneFill = root.querySelector('#zonebar-fill') as HTMLElement;
+  const comboMeter = root.querySelector('#combo-meter') as HTMLElement;
+  const comboX = root.querySelector('#combo-x') as HTMLElement;
+  const comboFill = root.querySelector('#combo-fill') as HTMLElement;
   const panel = root.querySelector('#panel') as HTMLElement;
   const muteBtn = root.querySelector('#mute') as HTMLButtonElement;
   const toastEl = root.querySelector('#toast') as HTMLElement;
@@ -104,7 +112,8 @@ export function createUI(
     panel.append(button(`⚙ ${t.settings}`, true, handlers.onSettings));
   }
 
-  function showGameOver(score: number, best: number, isRecord: boolean, daily?: { day: number; best: number }, rank?: string): void {
+  function showGameOver(score: number, best: number, isRecord: boolean, daily?: { day: number; best: number }, rank?: string, bestCombo = 0): void {
+    clearCombo();
     hud.classList.add('hidden');
     panel.classList.remove('hidden');
     const subLine = isRecord
@@ -113,10 +122,12 @@ export function createUI(
         ? `<div class="sub">${t.dailyBest}: ${daily.best} m</div>`
         : `<div class="sub">${t.best}: ${best} m</div>`;
     const rankLine = rank ? `<div class="sub">${t.rank}: ${rank}</div>` : '';
+    const comboLine = bestCombo >= 2 ? `<div class="sub">${t.bestCombo}: ×${bestCombo}</div>` : '';
     panel.innerHTML = `
       <div class="score-big">${score} m</div>
       ${subLine}
       ${rankLine}
+      ${comboLine}
     `;
     panel.append(button(t.again, false, () => handlers.onPlay(daily ? 'daily' : 'free')));
     panel.append(button(`🏆 ${t.leaderboard}`, true, handlers.onLeaderboard));
@@ -125,6 +136,7 @@ export function createUI(
 
   function showHud(daily?: { day: number }): void {
     setZone('', 0);
+    clearCombo();
     panel.classList.add('hidden');
     panel.innerHTML = '';
     hud.classList.remove('hidden');
@@ -185,6 +197,17 @@ export function createUI(
     setTimeout(() => c.remove(), 3000);
   }
 
+  function setCombo(combo: number, fraction: number): void {
+    comboMeter.classList.add('on');
+    comboX.textContent = `×${combo}`;
+    comboX.style.fontSize = `${18 + Math.min(combo, 8) * 2}px`;
+    comboX.style.color = combo >= 5 ? '#ff7a45' : '#ffd23e';
+    comboFill.style.width = `${Math.max(0, Math.min(1, fraction)) * 100}%`;
+  }
+  function clearCombo(): void {
+    comboMeter.classList.remove('on');
+  }
+
   return {
     showMenu,
     showGameOver,
@@ -200,5 +223,7 @@ export function createUI(
     setZone,
     showZoneBanner,
     showZoneCelebration,
+    setCombo,
+    clearCombo,
   };
 }

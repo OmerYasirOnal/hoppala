@@ -12,7 +12,7 @@ const FX: Record<SfxName, [number, number, OscillatorType]> = {
 };
 
 export function createSfx(): {
-  play(name: SfxName): void;
+  play(name: SfxName, pitch?: number): void;
   setMuted(b: boolean): void;
   unlock(): void;
 } {
@@ -41,15 +41,15 @@ export function createSfx(): {
         /* audio unavailable — play silently */
       }
     },
-    play(name) {
+    play(name, pitch = 1) {
       const ac = ensure();
       if (!ac) return;
       const [freq, dur, type] = FX[name];
       const osc = ac.createOscillator();
       const gain = ac.createGain();
       osc.type = type;
-      osc.frequency.setValueAtTime(freq, ac.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(Math.max(60, freq * (name === 'gameover' ? 0.4 : 1.4)), ac.currentTime + dur);
+      osc.frequency.setValueAtTime(freq * pitch, ac.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(Math.max(60, freq * pitch * (name === 'gameover' ? 0.4 : 1.4)), ac.currentTime + dur);
       gain.gain.setValueAtTime(0.12, ac.currentTime);
       gain.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime + dur);
       osc.connect(gain).connect(ac.destination);
