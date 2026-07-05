@@ -168,7 +168,7 @@ const ui = createUI(uiRoot, {
   onSettings() {
     const s = loadSave();
     renderSettings(uiRoot, {
-      muted, haptics: s.haptics ?? true, lang: s.lang ?? 'system', name: online.name(), native: isNative, version: '1.3.0',
+      muted, haptics: s.haptics ?? true, lang: s.lang ?? 'system', name: online.name(), native: isNative, version: '1.5.0',
       sensitivity,
     }, {
       onMute: (m) => { muted = m; sfx.setMuted(m); saveMuted(m); ui.setMuted(m); },
