@@ -69,7 +69,7 @@ const dailyBestFor = (key: string): number => {
   return save.dailyBest?.key === key ? save.dailyBest!.score : 0;
 };
 
-const meters = () => Math.floor(world.maxAltitude / 10);
+const meters = () => Math.floor(world.maxAltitude / 10) + world.stompBonus;
 
 function shareText(score: number): string {
   return mode === 'daily' && runId
@@ -215,6 +215,7 @@ const loop = createLoop({
       bridge.onEvent(e);
       if (e !== 'gameover') sfx.play(e);
     }
+    for (const fx of world.stompFx) renderer.addPop(fx.x, fx.y, fx.bonus, fx.combo, world.time);
     const m = meters();
     ui.setScore(m);
     const zi = zoneIndexAt(m);
