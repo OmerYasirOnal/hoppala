@@ -224,4 +224,20 @@ export function step(world: World, targetX: number, rng: Rng): void {
   }
 }
 
+/**
+ * Resume a dead run in place (Free-mode revive). Deterministic: a pure function of world state.
+ * Reuses the jetpack boost for a safe re-entry — invulnerable upward flight back into the
+ * reachable platform field. Preserves all score-bearing state (maxAltitude, stompBonus, combo).
+ */
+export function revive(world: World): void {
+  world.over = false;
+  const p = world.player;
+  p.y = world.cameraY + world.viewHeight * 0.5; // mid-view, above the death line
+  p.prevY = p.y; // collapse interpolation so the render doesn't streak from the old position
+  p.vy = 0;
+  p.boostT = TUNING.boostDuration; // invulnerable upward flight clears hazards + reaches platforms
+  world.events = []; // don't replay the 'gameover' event
+  world.stompFx = [];
+}
+
 export { JUMP_HEIGHT };

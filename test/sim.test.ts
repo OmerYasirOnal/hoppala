@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { mulberry32 } from '../src/core/rng';
-import { createWorld, step, phantomVisible, shortestWrapDelta } from '../src/game/sim';
+import { createWorld, step, phantomVisible, shortestWrapDelta, revive } from '../src/game/sim';
 import { TUNING, type Platform } from '../src/game/types';
 
 const VIEW_H = 700;
@@ -393,5 +393,41 @@ describe('v1.5 stomp combo', () => {
     expect(stomp(w, -800)).toBe(true);
     expect(w.combo).toBe(1); // combo reset
     expect(w.maxCombo).toBe(2); // peak preserved
+  });
+});
+
+describe('revive', () => {
+  it('clears over, grants a boost, and preserves score-bearing state', () => {
+    const rng = mulberry32(1);
+    const w = createWorld(rng, 700);
+    for (let i = 0; i < 30; i++) step(w, TUNING.viewWidth / 2, rng);
+    w.over = true;
+    w.stompBonus = 42;
+    w.combo = 3;
+    const alt = w.maxAltitude;
+    revive(w);
+    expect(w.over).toBe(false);
+    expect(w.player.boostT).toBe(TUNING.boostDuration);
+    expect(w.maxAltitude).toBe(alt);
+    expect(w.stompBonus).toBe(42);
+    expect(w.combo).toBe(3);
+    expect(w.events).toHaveLength(0);
+  });
+
+  it('respawns the player above the death line', () => {
+    const w = createWorld(mulberry32(2), 700);
+    w.over = true;
+    revive(w);
+    expect(w.player.y).toBeLessThan(w.cameraY + w.viewHeight); // smaller y = higher = above death line
+    expect(w.player.prevY).toBe(w.player.y); // interpolation collapsed
+  });
+
+  it('does not immediately die again after reviving (boost carries it back)', () => {
+    const rng = mulberry32(3);
+    const w = createWorld(rng, 700);
+    w.over = true;
+    revive(w);
+    step(w, TUNING.viewWidth / 2, rng);
+    expect(w.over).toBe(false);
   });
 });
