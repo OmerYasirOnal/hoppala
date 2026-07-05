@@ -80,6 +80,7 @@ export interface World {
   pickups: Pickup[];
   enemies: Enemy[];
   combo: number;
+  maxCombo: number;
   stompBonus: number;
   comboEndsAt: number;
   stompFx: StompFx[];

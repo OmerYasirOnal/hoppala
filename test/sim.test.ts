@@ -380,4 +380,18 @@ describe('v1.5 stomp combo', () => {
     expect(stomp(w, -400)).toBe(true);
     expect(w.combo).toBe(1);
   });
+
+  it('maxCombo tracks the peak combo of the run and survives a reset', () => {
+    const w = world();
+    w.platforms = [];
+    expect(stomp(w, 0)).toBe(true);
+    expect(w.maxCombo).toBe(1);
+    expect(stomp(w, -400)).toBe(true); // chain within the window
+    expect(w.combo).toBe(2);
+    expect(w.maxCombo).toBe(2);
+    w.comboEndsAt = w.time - 0.001; // force the window to lapse
+    expect(stomp(w, -800)).toBe(true);
+    expect(w.combo).toBe(1); // combo reset
+    expect(w.maxCombo).toBe(2); // peak preserved
+  });
 });
