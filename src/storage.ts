@@ -10,6 +10,8 @@ export interface Save {
   onboarded?: boolean;
   lang?: 'tr' | 'en' | 'system';
   haptics?: boolean;
+  sensitivity?: number;
+  maxZone?: number;
   updatedAt?: number;
 }
 
@@ -27,6 +29,8 @@ function read(): Save {
     if (v.onboarded === true) save.onboarded = true;
     if (v.lang === 'tr' || v.lang === 'en' || v.lang === 'system') save.lang = v.lang;
     if (typeof v.haptics === 'boolean') save.haptics = v.haptics;
+    if (typeof v.sensitivity === 'number') save.sensitivity = v.sensitivity;
+    if (typeof v.maxZone === 'number') save.maxZone = v.maxZone;
     if (typeof v.updatedAt === 'number') save.updatedAt = v.updatedAt;
     return save;
   } catch {
@@ -74,6 +78,14 @@ export function saveHaptics(on: boolean): void {
   write({ ...read(), haptics: on });
 }
 
+export function saveSensitivity(sensitivity: number): void {
+  write({ ...read(), sensitivity });
+}
+
+export function saveMaxZone(maxZone: number): void {
+  write({ ...read(), maxZone });
+}
+
 export function resetSave(): void {
   try {
     localStorage.removeItem(KEY);
@@ -85,11 +97,11 @@ export function resetSave(): void {
 /** Snapshot of the cloud-syncable fields. */
 export function toCloudSave(): CloudSave {
   const s = read();
-  return { name: s.name ?? '', best: s.best, dailyBest: s.dailyBest, updatedAt: s.updatedAt ?? 0 };
+  return { name: s.name ?? '', best: s.best, dailyBest: s.dailyBest, maxZone: s.maxZone ?? 0, updatedAt: s.updatedAt ?? 0 };
 }
 
 /** Write an already-merged CloudSave back, preserving local-only fields (muted/onboarded/lang/haptics). */
 export function writeCloudSave(c: CloudSave): void {
   const s = read();
-  write({ ...s, name: c.name || s.name, best: c.best, dailyBest: c.dailyBest, updatedAt: c.updatedAt });
+  write({ ...s, name: c.name || s.name, best: c.best, dailyBest: c.dailyBest, maxZone: c.maxZone, updatedAt: c.updatedAt });
 }
