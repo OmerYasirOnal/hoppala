@@ -16,7 +16,7 @@ html, body { height: 100%; background: #0b1220; overscroll-behavior: none; }
 #ui .hud {
   position: absolute; top: max(12px, env(safe-area-inset-top)); left: 0; right: 0;
   display: flex; align-items: center; justify-content: center; gap: 6px;
-  padding-right: 46px;
+  padding-left: 46px; padding-right: 46px;
   font-weight: 700; font-size: 22px;
   text-shadow: 0 1px 4px rgba(0,0,0,0.4);
 }
@@ -32,6 +32,10 @@ html, body { height: 100%; background: #0b1220; overscroll-behavior: none; }
 #ui button.ghost { background: rgba(255,255,255,0.14); color: #f2f6ff; }
 #ui .mute {
   position: absolute; top: max(10px, env(safe-area-inset-top)); right: 12px;
+  background: transparent; font-size: 22px; padding: 6px;
+}
+#ui .pause {
+  position: absolute; top: max(10px, env(safe-area-inset-top)); left: 12px;
   background: transparent; font-size: 22px; padding: 6px;
 }
 #ui .toast { position: absolute; bottom: 15%; font-size: 14px; opacity: 0.9; }

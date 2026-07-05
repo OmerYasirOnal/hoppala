@@ -55,6 +55,7 @@ setLang(uiLang); // re-point the string table to the persisted override before c
 let rng: Rng = mulberry32(Date.now() >>> 0);
 let world: World = createWorld(rng, renderer.viewHeight());
 let playing = false;
+let paused = false;
 let recordCelebrated = false;
 let overGen = 0;
 let firstRun = !save.onboarded;
@@ -187,6 +188,22 @@ const ui = createUI(uiRoot, {
       onClose: () => {},
     });
   },
+  onPause() {
+    if (!playing || paused) return;
+    paused = true;
+    loop.stop();
+    ui.showPause({
+      onResume: () => {
+        paused = false;
+        loop.start();
+      },
+      onMainMenu: () => {
+        paused = false;
+        playing = false;
+        ui.showMenu(best, { day: dayNumber(new Date()), best: dailyBestFor(dateKey(new Date())) });
+      },
+    });
+  },
 });
 ui.setMuted(muted);
 ui.showMenu(best, { day: dayNumber(new Date()), best: dailyBestFor(dateKey(new Date())) });
@@ -282,5 +299,5 @@ loop.start();
 
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) loop.stop();
-  else loop.start();
+  else if (!paused) loop.start();
 });
