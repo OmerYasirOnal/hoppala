@@ -186,6 +186,7 @@ const ui = createUI(uiRoot, {
     renderZones(uiRoot, {
       rows: ZONES.map((z, i) => ({ key: z.key, name: zoneLabel(z.key), meters: z.meters, color: `rgb(${z.top[0]},${z.top[1]},${z.top[2]})`, reached: i <= maxZone })),
       reachedCount: maxZone + 1,
+      best,
       onClose: () => {},
     });
   },
