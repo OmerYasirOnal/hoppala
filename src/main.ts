@@ -41,7 +41,8 @@ const sfx = createSfx();
 const save = loadSave();
 let muted = save.muted;
 let best = save.best;
-let maxZone = save.maxZone ?? 0;
+// seed from the all-time best so pre-v1.3 players immediately see the zones they earned
+let maxZone = Math.max(save.maxZone ?? 0, zoneIndexAt(best));
 let sensitivity = save.sensitivity ?? 1;
 const drag = attachDrag(app, TUNING.viewWidth, canvas, () => sensitivity);
 let runZone = 0; // highest zone index shown as a banner this run
