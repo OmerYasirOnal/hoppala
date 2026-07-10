@@ -6,6 +6,7 @@ import { TUNING, type World } from './game/types';
 import { attachDrag } from './input/drag';
 import { createRenderer } from './render/renderer';
 import { createSfx } from './audio/sfx';
+import { createMusic } from './audio/music';
 import { createUI, t } from './ui/screens';
 import { loadSave, saveBest, saveMuted, saveDailyBest, saveSensitivity, saveMaxZone } from './storage';
 import { dayNumber, dateKey, runIdentity, type RunIdentity } from './core/daily';
@@ -15,7 +16,7 @@ import { boardForRun, formatRank } from './online/rank';
 import { renderLeaderboard, type LeaderboardView } from './ui/leaderboard';
 import { askNickname } from './ui/nickname';
 import { renderSettings } from './ui/settings';
-import { saveOnboarded, saveLang, saveHaptics, resetSave } from './storage';
+import { saveOnboarded, saveLang, saveHaptics, saveMusic, resetSave } from './storage';
 import { lang, setLang, zoneLabel } from './ui/screens';
 import { ZONES, zoneIndexAt, zoneProgress } from './game/zones';
 import { renderZones } from './ui/zones';
@@ -40,8 +41,14 @@ window.addEventListener('resize', () => {
 });
 
 const sfx = createSfx();
+const music = createMusic();
 const save = loadSave();
 let muted = save.muted;
+let musicOn = save.music ?? true; // calm ambient pad, on by default; gated by the master mute
+/** Ambient music plays only when enabled AND not muted. Call after any mute/music change. */
+function applyMusic(): void {
+  music.setEnabled(musicOn && !muted);
+}
 let best = save.best;
 // seed from the all-time best so pre-v1.3 players immediately see the zones they earned
 let maxZone = Math.max(save.maxZone ?? 0, zoneIndexAt(best));
@@ -135,6 +142,9 @@ async function openLeaderboard(initialTab: 'global' | 'daily' = mode === 'daily'
 const ui = createUI(uiRoot, {
   onPlay(m: GameMode) {
     sfx.unlock();
+    music.start();
+    music.setZone(0); // each run starts at the base tonality and rises with the climb
+    applyMusic();
     mode = m;
     const now = new Date();
     if (m === 'daily') {
@@ -167,6 +177,7 @@ const ui = createUI(uiRoot, {
     muted = !muted;
     sfx.setMuted(muted);
     saveMuted(muted);
+    applyMusic(); // the master mute silences the ambient pad too
     return muted;
   },
   onLeaderboard() {
@@ -175,10 +186,11 @@ const ui = createUI(uiRoot, {
   onSettings() {
     const s = loadSave();
     renderSettings(uiRoot, {
-      muted, haptics: s.haptics ?? true, lang: s.lang ?? 'system', name: online.name(), native: isNative, version: '1.10.0',
+      muted, music: musicOn, haptics: s.haptics ?? true, lang: s.lang ?? 'system', name: online.name(), native: isNative, version: '1.10.0',
       sensitivity,
     }, {
-      onMute: (m) => { muted = m; sfx.setMuted(m); saveMuted(m); ui.setMuted(m); },
+      onMute: (m) => { muted = m; sfx.setMuted(m); saveMuted(m); ui.setMuted(m); applyMusic(); },
+      onMusic: (on) => { musicOn = on; saveMusic(on); music.start(); applyMusic(); },
       onHaptics: (on) => saveHaptics(on),
       onLang: (l) => { saveLang(l); location.reload(); }, // reload re-renders every screen in the new language
       onEditName: () => { void online.editName((current) => askNickname(uiRoot, current)); },
@@ -224,7 +236,7 @@ function goToMenu(): void {
 }
 ui.setMuted(muted);
 ui.showMenu(best, { day: dayNumber(new Date()), best: dailyBestFor(dateKey(new Date())) });
-app.addEventListener('pointerdown', () => sfx.unlock(), { once: true });
+app.addEventListener('pointerdown', () => { sfx.unlock(); music.start(); applyMusic(); }, { once: true });
 
 if ('Capacitor' in window) {
   void import('./platform/capacitor').then((m) => m.install()).catch(() => {});
@@ -292,6 +304,8 @@ const loop = createLoop({
     if (zi > runZone) {
       runZone = zi;
       ui.showZoneBanner(zoneLabel(ZONES[zi]!.key));
+      music.setZone(zi); // the ambient pad rises in key as the player climbs into a new zone
+      music.chime();
       if (zi > maxZone) {
         maxZone = zi;
         saveMaxZone(maxZone);

@@ -2,6 +2,7 @@ import { t } from './screens';
 
 export interface SettingsState {
   muted: boolean;
+  music: boolean;
   haptics: boolean;
   lang: 'tr' | 'en' | 'system';
   name: string | null;
@@ -12,6 +13,7 @@ export interface SettingsState {
 
 export interface SettingsCallbacks {
   onMute(muted: boolean): void;
+  onMusic(on: boolean): void;
   onHaptics(on: boolean): void;
   onLang(lang: 'tr' | 'en' | 'system'): void;
   onEditName(): void;
@@ -29,6 +31,7 @@ export function renderSettings(root: HTMLElement, state: SettingsState, cbs: Set
     <div class="modal">
       <h2>${t.settings}</h2>
       <label class="row"><span>${t.sound}</span><input type="checkbox" id="set-sound" ${state.muted ? '' : 'checked'} /></label>
+      <label class="row"><span>${t.music}</span><input type="checkbox" id="set-music" ${state.music ? 'checked' : ''} /></label>
       ${state.native ? `<label class="row"><span>${t.haptics}</span><input type="checkbox" id="set-haptics" ${state.haptics ? 'checked' : ''} /></label>` : ''}
       <label class="row"><span>${t.language}</span>
         <select id="set-lang">
@@ -49,6 +52,9 @@ export function renderSettings(root: HTMLElement, state: SettingsState, cbs: Set
 
   (overlay.querySelector('#set-sound') as HTMLInputElement).addEventListener('change', (e) => {
     cbs.onMute(!(e.target as HTMLInputElement).checked);
+  });
+  (overlay.querySelector('#set-music') as HTMLInputElement).addEventListener('change', (e) => {
+    cbs.onMusic((e.target as HTMLInputElement).checked);
   });
   const hapt = overlay.querySelector('#set-haptics') as HTMLInputElement | null;
   hapt?.addEventListener('change', (e) => cbs.onHaptics((e.target as HTMLInputElement).checked));

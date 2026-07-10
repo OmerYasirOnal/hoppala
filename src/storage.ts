@@ -10,6 +10,7 @@ export interface Save {
   onboarded?: boolean;
   lang?: 'tr' | 'en' | 'system';
   haptics?: boolean;
+  music?: boolean;
   sensitivity?: number;
   maxZone?: number;
   updatedAt?: number;
@@ -29,6 +30,7 @@ function read(): Save {
     if (v.onboarded === true) save.onboarded = true;
     if (v.lang === 'tr' || v.lang === 'en' || v.lang === 'system') save.lang = v.lang;
     if (typeof v.haptics === 'boolean') save.haptics = v.haptics;
+    if (typeof v.music === 'boolean') save.music = v.music;
     if (typeof v.sensitivity === 'number') save.sensitivity = v.sensitivity;
     if (typeof v.maxZone === 'number') save.maxZone = v.maxZone;
     if (typeof v.updatedAt === 'number') save.updatedAt = v.updatedAt;
@@ -76,6 +78,10 @@ export function saveLang(lang: 'tr' | 'en' | 'system'): void {
 
 export function saveHaptics(on: boolean): void {
   write({ ...read(), haptics: on });
+}
+
+export function saveMusic(on: boolean): void {
+  write({ ...read(), music: on });
 }
 
 export function saveSensitivity(sensitivity: number): void {
