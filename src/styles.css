@@ -20,8 +20,38 @@ html, body { height: 100%; background: #0b1220; overscroll-behavior: none; }
   font-weight: 700; font-size: 22px;
   text-shadow: 0 1px 4px rgba(0,0,0,0.4);
 }
-#ui h1 { font-size: 42px; letter-spacing: 1px; }
-#ui .panel { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+#ui .panel { display: flex; align-items: center; justify-content: center; }
+
+/* Sky Poster: the menu + game-over card, semi-transparent over the live sky scene. */
+.poster {
+  pointer-events: auto;
+  display: flex; flex-direction: column; align-items: center; gap: 14px;
+  width: min(360px, 86vw); padding: 24px 22px 20px;
+  background: rgba(18, 26, 44, 0.78); border: 1px solid #22304d; border-radius: 22px;
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+}
+.poster.over { gap: 12px; }
+@keyframes poster-in { from { opacity: 0; transform: translateY(10px) scale(0.96); } to { opacity: 1; transform: none; } }
+.poster.enter { animation: poster-in 200ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+.wordmark { font-size: 44px; font-weight: 800; letter-spacing: 1px; color: #fff; text-shadow: 0 3px 0 rgba(0,0,0,0.18), 0 8px 24px rgba(0,0,0,0.4); margin: 0; }
+.tagline { opacity: 0.72; font-size: 14px; margin-top: -6px; }
+.mascot { width: 86px; height: 86px; display: block; margin: 0 auto -8px; overflow: visible; }
+.mascot-body { fill: #ffd23e; }
+.mascot-eyes circle { fill: #1c1c28; }
+.mascot-shadow { fill: #000; opacity: 0.2; } /* resting alpha — kept for prefers-reduced-motion (animation off) */
+.mascot-hop { transform-box: fill-box; transform-origin: center; animation: mascot-hop 1.15s ease-in-out infinite; }
+.mascot-eyes { transform-box: fill-box; transform-origin: center; animation: mascot-blink 3.6s infinite; }
+.mascot-shadow { transform-box: fill-box; transform-origin: center; animation: mascot-shadow 1.15s ease-in-out infinite; }
+@keyframes mascot-hop { 0%, 100% { transform: translateY(3px); } 50% { transform: translateY(-7px); } }
+@keyframes mascot-shadow { 0%, 100% { transform: scaleX(1); opacity: 0.22; } 50% { transform: scaleX(0.7); opacity: 0.1; } }
+@keyframes mascot-blink { 0%, 95%, 100% { transform: scaleY(1); } 97% { transform: scaleY(0.12); } }
+.poster-actions { display: flex; flex-direction: column; gap: 10px; width: 100%; margin-top: 2px; }
+.poster-actions button { width: 100%; }
+.icon-row { display: flex; gap: 14px; justify-content: center; margin-top: 2px; }
+#ui .icon-btn { pointer-events: auto; width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; font-size: 20px; padding: 0; background: rgba(255,255,255,0.12); color: #f2f6ff; }
+#ui .icon-btn:active { transform: scale(0.94); }
+#ui .stat-chip { opacity: 0.8; font-size: 13px; margin-top: 2px; text-align: center; }
 #ui .score-big { font-size: 34px; font-weight: 800; }
 #ui .sub { opacity: 0.8; font-size: 15px; }
 #ui button {
@@ -136,3 +166,7 @@ button.danger { color: #ff8a8a; }
 .ad-modal { text-align: center; width: min(300px, 100%); }
 .ad-badge { font-size: 15px; color: #9fb0d4; margin-bottom: 12px; }
 .ad-count { font-size: 44px; font-weight: 800; color: #ffd23e; line-height: 1; }
+
+@media (prefers-reduced-motion: reduce) {
+  .poster.enter, .mascot-hop, .mascot-eyes, .mascot-shadow { animation: none; }
+}

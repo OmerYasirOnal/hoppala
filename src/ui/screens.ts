@@ -49,9 +49,16 @@ export function zoneLabel(key: string): string {
   return (t as Record<string, string>)[`zone_${key}`] ?? key;
 }
 
+/** The menu mascot — mirrors the in-game player (yellow body, dark eyes); CSS animates the hop/blink. */
+const MASCOT_SVG = `<svg class="mascot" viewBox="0 0 64 64" aria-hidden="true">
+  <ellipse class="mascot-shadow" cx="32" cy="58" rx="15" ry="3.5"/>
+  <g class="mascot-hop"><circle class="mascot-body" cx="32" cy="32" r="20"/>
+  <g class="mascot-eyes"><circle cx="25" cy="28" r="3.4"/><circle cx="39" cy="28" r="3.4"/></g></g>
+</svg>`;
+
 export function createUI(
   root: HTMLElement,
-  handlers: { onPlay(mode: GameMode): void; onShare(): void; onToggleMute(): boolean; onLeaderboard(): void; onSettings(): void; onZones(): void; onPause(): void },
+  handlers: { onPlay(mode: GameMode): void; onShare(): void; onToggleMute(): boolean; onLeaderboard(): void; onSettings(): void; onZones(): void; onPause(): void; onMainMenu(): void },
 ): {
   showMenu(best: number, daily: { day: number; best: number }, rank?: string): void;
   showGameOver(score: number, best: number, isRecord: boolean, daily?: { day: number; best: number }, rank?: string, bestCombo?: number, onRevive?: (() => void) | null): void;
@@ -66,6 +73,7 @@ export function createUI(
   setCombo(combo: number, fraction: number): void;
   clearCombo(): void;
   showPause(cbs: { onResume(): void; onMainMenu(): void }): void;
+  screen(): 'menu' | 'over' | null;
 } {
   root.innerHTML = `
     <div class="hud hidden"><span id="score">0 m</span><span id="zone" class="zone"></span><span id="daybadge" class="daybadge hidden"></span><div id="zonebar" class="zonebar"><div id="zonebar-fill"></div></div></div>
@@ -114,49 +122,105 @@ export function createUI(
     return b;
   }
 
+  /** A compact circular icon button (leaderboard/journey/settings/share). */
+  function iconButton(icon: string, label: string, onClick: () => void): HTMLButtonElement {
+    const b = document.createElement('button');
+    b.className = 'icon-btn';
+    b.textContent = icon;
+    b.setAttribute('aria-label', label);
+    b.addEventListener('click', (e) => {
+      e.stopPropagation();
+      onClick();
+    });
+    return b;
+  }
+
+  let currentScreen: 'menu' | 'over' | null = null;
+  /** Swap the panel to a poster screen; play the entrance animation only on a genuine screen change
+   *  (not on in-place data updates like the async rank or the late ad-fill re-render). */
+  function swapPanel(screen: 'menu' | 'over', build: (poster: HTMLElement) => void): void {
+    panel.classList.remove('hidden');
+    const animate = currentScreen !== screen;
+    currentScreen = screen;
+    const poster = document.createElement('div');
+    poster.className = `poster ${screen}${animate ? ' enter' : ''}`;
+    build(poster);
+    panel.replaceChildren(poster);
+    // On an in-place game-over re-render (async rank / late ad-fill), the button list can change
+    // (e.g. the revive button appears, demoting "Again"). Briefly swallow taps so a button that
+    // shifted under the thumb can't cause a mis-tap.
+    if (!animate && screen === 'over') {
+      const actions = poster.querySelector('.poster-actions') as HTMLElement | null;
+      if (actions) {
+        actions.style.pointerEvents = 'none';
+        setTimeout(() => { actions.style.pointerEvents = ''; }, 300);
+      }
+    }
+  }
+
   function showMenu(best: number, daily: { day: number; best: number }, rank?: string): void {
     clearCombo();
     hud.classList.add('hidden');
     pauseBtn.classList.add('hidden');
-    panel.classList.remove('hidden');
-    const rankLine = rank ? `<div class="sub">${t.best}: ${best} m · ${rank}</div>` : best > 0 ? `<div class="sub">${t.best}: ${best} m</div>` : '';
-    panel.innerHTML = `<h1>${t.title}</h1><div class="sub">${t.hint}</div>${rankLine}${daily.best > 0 ? `<div class="sub">${t.dailyBest}: ${daily.best} m</div>` : ''}`;
-    panel.append(button(t.free, false, () => handlers.onPlay('free')));
-    panel.append(button(`${t.daily} #${daily.day}`, false, () => handlers.onPlay('daily')));
-    panel.append(button(`🏆 ${t.leaderboard}`, true, handlers.onLeaderboard));
-    panel.append(button(`🗺️ ${t.journey}`, true, handlers.onZones));
-    panel.append(button(`⚙ ${t.settings}`, true, handlers.onSettings));
+    swapPanel('menu', (poster) => {
+      poster.innerHTML = `${MASCOT_SVG}<h1 class="wordmark">${t.title}</h1><div class="tagline">${t.hint}</div>`;
+      const actions = document.createElement('div');
+      actions.className = 'poster-actions';
+      actions.append(button(t.play, false, () => handlers.onPlay('free')));
+      actions.append(button(`${t.daily} #${daily.day}`, true, () => handlers.onPlay('daily')));
+      poster.append(actions);
+      const icons = document.createElement('div');
+      icons.className = 'icon-row';
+      icons.append(iconButton('🏆', t.leaderboard, handlers.onLeaderboard));
+      icons.append(iconButton('🗺️', t.journey, handlers.onZones));
+      icons.append(iconButton('⚙', t.settings, handlers.onSettings));
+      poster.append(icons);
+      const parts = [
+        rank ? `${t.best}: ${best} m · ${rank}` : best > 0 ? `${t.best}: ${best} m` : '',
+        daily.best > 0 ? `${t.dailyBest}: ${daily.best} m` : '',
+      ].filter(Boolean);
+      if (parts.length) {
+        const chip = document.createElement('div');
+        chip.className = 'stat-chip';
+        chip.textContent = parts.join(' · ');
+        poster.append(chip);
+      }
+    });
   }
 
   function showGameOver(score: number, best: number, isRecord: boolean, daily?: { day: number; best: number }, rank?: string, bestCombo = 0, onRevive?: (() => void) | null): void {
     clearCombo();
     pauseBtn.classList.add('hidden');
     hud.classList.add('hidden');
-    panel.classList.remove('hidden');
-    const subLine = isRecord
-      ? `<div class="sub">🏆 ${t.record}</div>`
-      : daily
-        ? `<div class="sub">${t.dailyBest}: ${daily.best} m</div>`
-        : `<div class="sub">${t.best}: ${best} m</div>`;
-    const rankLine = rank ? `<div class="sub">${t.rank}: ${rank}</div>` : '';
-    const comboLine = bestCombo >= 2 ? `<div class="sub">${t.bestCombo}: ×${bestCombo}</div>` : '';
-    panel.innerHTML = `
-      <div class="score-big">${score} m</div>
-      ${subLine}
-      ${rankLine}
-      ${comboLine}
-    `;
-    if (onRevive) panel.append(button(`📺 ${t.watchContinue}`, false, onRevive));
-    panel.append(button(t.again, false, () => handlers.onPlay(daily ? 'daily' : 'free')));
-    panel.append(button(`🏆 ${t.leaderboard}`, true, handlers.onLeaderboard));
-    panel.append(button(t.share, true, handlers.onShare));
+    swapPanel('over', (poster) => {
+      const subLine = isRecord
+        ? `<div class="sub">🏆 ${t.record}</div>`
+        : daily
+          ? `<div class="sub">${t.dailyBest}: ${daily.best} m</div>`
+          : `<div class="sub">${t.best}: ${best} m</div>`;
+      const rankLine = rank ? `<div class="sub">${t.rank}: ${rank}</div>` : '';
+      const comboLine = bestCombo >= 2 ? `<div class="sub">${t.bestCombo}: ×${bestCombo}</div>` : '';
+      poster.innerHTML = `<div class="score-big">${score} m</div>${subLine}${rankLine}${comboLine}`;
+      const actions = document.createElement('div');
+      actions.className = 'poster-actions';
+      if (onRevive) actions.append(button(`📺 ${t.watchContinue}`, false, onRevive));
+      actions.append(button(t.again, !!onRevive, () => handlers.onPlay(daily ? 'daily' : 'free')));
+      actions.append(button(`🏠 ${t.mainMenu}`, true, handlers.onMainMenu));
+      poster.append(actions);
+      const icons = document.createElement('div');
+      icons.className = 'icon-row';
+      icons.append(iconButton('🏆', t.leaderboard, handlers.onLeaderboard));
+      icons.append(iconButton('📤', t.share, handlers.onShare));
+      poster.append(icons);
+    });
   }
 
   function showHud(daily?: { day: number }): void {
     setZone('', 0);
     clearCombo();
+    currentScreen = null; // next menu/game-over is a genuine screen change → animate its entrance
     panel.classList.add('hidden');
-    panel.innerHTML = '';
+    panel.replaceChildren();
     hud.classList.remove('hidden');
     pauseBtn.classList.remove('hidden');
     if (daily) {
@@ -266,5 +330,6 @@ export function createUI(
     setCombo,
     clearCombo,
     showPause,
+    screen: () => currentScreen,
   };
 }

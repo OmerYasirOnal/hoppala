@@ -6,9 +6,13 @@ const AD_OPTS: AdOptions = { adId: REWARDED_AD_UNIT_ID, isTesting: TESTING };
 
 /** Whether a rewarded ad is prepared and ready to show instantly. */
 let loaded = false;
+/** A prepare is in flight — prevents duplicate concurrent preloads (e.g. game-over re-checks). */
+let loading = false;
 
 /** Prepare the next rewarded ad in the background (fire-and-forget) for instant playback. */
 function preload(): void {
+  if (loading) return;
+  loading = true;
   loaded = false;
   AdMob.prepareRewardVideoAd(AD_OPTS)
     .then(() => {
@@ -16,7 +20,20 @@ function preload(): void {
     })
     .catch(() => {
       loaded = false; // will be retried lazily by showRewardedAd()
+    })
+    .finally(() => {
+      loading = false;
     });
+}
+
+/** Whether a rewarded ad is preloaded and ready to show instantly. */
+export function isRewardedAdReady(): boolean {
+  return loaded;
+}
+
+/** (Re)preload a rewarded ad in the background if one isn't already ready. Fire-and-forget. */
+export function preloadRewardedAd(): void {
+  if (!loaded) preload();
 }
 
 /**
@@ -58,15 +75,18 @@ export async function initAdMob(): Promise<void> {
  * show call, plus a safety timeout so the caller can never hang.
  */
 export async function showRewardedAd(): Promise<boolean> {
-  // Cold path: if nothing is preloaded, prepare now (a short load) before showing.
+  // Cold path: if nothing is preloaded, prepare now (a short load) before showing. Bounded by a timeout so
+  // a native prepare that never settles can't latch the caller's in-flight guard forever (never hang).
   if (!loaded) {
-    try {
-      await AdMob.prepareRewardVideoAd(AD_OPTS);
-      loaded = true;
-    } catch {
+    const prepared = await Promise.race([
+      AdMob.prepareRewardVideoAd(AD_OPTS).then(() => true, () => false),
+      new Promise<boolean>((r) => setTimeout(() => r(false), 10_000)),
+    ]);
+    if (!prepared) {
       preload(); // try to warm one up for next time
       return false;
     }
+    loaded = true;
   }
 
   return new Promise<boolean>((resolve) => {
