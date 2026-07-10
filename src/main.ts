@@ -204,26 +204,24 @@ const ui = createUI(uiRoot, {
         paused = false;
         loop.start();
       },
-      onMainMenu: () => {
-        paused = false;
-        playing = false;
-        overGen++; // invalidate any pending game-over-generation callbacks before leaving to the menu
-        loop.start(); // onPause stopped the loop; restart it so the menu renders and the next run isn't soft-locked
-        ui.showMenu(best, { day: dayNumber(new Date()), best: dailyBestFor(dateKey(new Date())) });
-      },
+      onMainMenu: goToMenu,
     });
   },
-  onMainMenu() {
-    // From game-over: no run in flight, loop already running — return to the menu.
-    paused = false;
-    playing = false;
-    // Bump the generation so the pending online-rank re-render and the late ad-fill re-check bail out
-    // (both guard on `gen !== overGen`), instead of re-popping the game-over poster over the menu.
-    overGen++;
-    loop.start(); // idempotent; guarantees the menu renders and the next run isn't soft-locked
-    ui.showMenu(best, { day: dayNumber(new Date()), best: dailyBestFor(dateKey(new Date())) });
-  },
+  onMainMenu: goToMenu, // from game-over
 });
+
+/**
+ * Return to the main menu from a pause or game-over. Bumps overGen so any pending game-over-generation
+ * callbacks (the async online-rank re-render, the late ad-fill re-check — both guard on `gen !== overGen`)
+ * bail out instead of re-popping the game-over poster over the freshly-opened menu.
+ */
+function goToMenu(): void {
+  paused = false;
+  playing = false;
+  overGen++;
+  loop.start(); // idempotent; guarantees the menu renders and the next run isn't soft-locked
+  ui.showMenu(best, { day: dayNumber(new Date()), best: dailyBestFor(dateKey(new Date())) });
+}
 ui.setMuted(muted);
 ui.showMenu(best, { day: dayNumber(new Date()), best: dailyBestFor(dateKey(new Date())) });
 app.addEventListener('pointerdown', () => sfx.unlock(), { once: true });
@@ -234,9 +232,11 @@ if ('Capacitor' in window) {
 
 void online.init().then(async () => {
   maxZone = loadSave().maxZone ?? maxZone;
-  if (playing || best <= 0) return;              // don't disturb an in-progress run
+  // Only refresh the menu's rank line while the menu is actually showing — never swap the menu in over an
+  // in-progress run or the game-over poster.
+  if (playing || best <= 0 || ui.screen() !== 'menu') return;
   const r = await online.myRank('global', best);
-  if (r && !playing) {
+  if (r && !playing && ui.screen() === 'menu') {
     ui.showMenu(best, { day: dayNumber(new Date()), best: dailyBestFor(dateKey(new Date())) }, formatRank(r, uiLang));
   }
 });
@@ -318,7 +318,10 @@ const loop = createLoop({
       bridge.submitScore(m, mode, runId?.day);
       const board = boardForRun(mode, runId?.key);
       const daily = mode === 'daily' && runId ? { day: runId.day, best: Math.max(runBestBaseline, m) } : undefined;
-      const hasNativeAd = !!bridge.showRewardedAd;
+      // Use the stable platform flag, not the async-populated bridge getter: on native the real bridge
+      // is installed via a dynamic import that may not have resolved yet at an early death. isRewardedAdReady
+      // is undefined until then (→ false), so the button stays correctly withheld rather than dead-tapping.
+      const hasNativeAd = isNative;
       const onRevive = () => void doRevive(gen);
       let lastRankStr: string | undefined;
       // Re-render game-over, recomputing the revive gate each time (ad readiness can change between renders).

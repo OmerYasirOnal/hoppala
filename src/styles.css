@@ -39,7 +39,7 @@ html, body { height: 100%; background: #0b1220; overscroll-behavior: none; }
 .mascot { width: 86px; height: 86px; display: block; margin: 0 auto -8px; overflow: visible; }
 .mascot-body { fill: #ffd23e; }
 .mascot-eyes circle { fill: #1c1c28; }
-.mascot-shadow { fill: #000; }
+.mascot-shadow { fill: #000; opacity: 0.2; } /* resting alpha — kept for prefers-reduced-motion (animation off) */
 .mascot-hop { transform-box: fill-box; transform-origin: center; animation: mascot-hop 1.15s ease-in-out infinite; }
 .mascot-eyes { transform-box: fill-box; transform-origin: center; animation: mascot-blink 3.6s infinite; }
 .mascot-shadow { transform-box: fill-box; transform-origin: center; animation: mascot-shadow 1.15s ease-in-out infinite; }

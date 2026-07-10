@@ -73,6 +73,7 @@ export function createUI(
   setCombo(combo: number, fraction: number): void;
   clearCombo(): void;
   showPause(cbs: { onResume(): void; onMainMenu(): void }): void;
+  screen(): 'menu' | 'over' | null;
 } {
   root.innerHTML = `
     <div class="hud hidden"><span id="score">0 m</span><span id="zone" class="zone"></span><span id="daybadge" class="daybadge hidden"></span><div id="zonebar" class="zonebar"><div id="zonebar-fill"></div></div></div>
@@ -329,5 +330,6 @@ export function createUI(
     setCombo,
     clearCombo,
     showPause,
+    screen: () => currentScreen,
   };
 }

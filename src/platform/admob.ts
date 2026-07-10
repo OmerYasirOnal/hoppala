@@ -75,15 +75,18 @@ export async function initAdMob(): Promise<void> {
  * show call, plus a safety timeout so the caller can never hang.
  */
 export async function showRewardedAd(): Promise<boolean> {
-  // Cold path: if nothing is preloaded, prepare now (a short load) before showing.
+  // Cold path: if nothing is preloaded, prepare now (a short load) before showing. Bounded by a timeout so
+  // a native prepare that never settles can't latch the caller's in-flight guard forever (never hang).
   if (!loaded) {
-    try {
-      await AdMob.prepareRewardVideoAd(AD_OPTS);
-      loaded = true;
-    } catch {
+    const prepared = await Promise.race([
+      AdMob.prepareRewardVideoAd(AD_OPTS).then(() => true, () => false),
+      new Promise<boolean>((r) => setTimeout(() => r(false), 10_000)),
+    ]);
+    if (!prepared) {
       preload(); // try to warm one up for next time
       return false;
     }
+    loaded = true;
   }
 
   return new Promise<boolean>((resolve) => {
