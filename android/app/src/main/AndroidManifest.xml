@@ -34,11 +34,10 @@
                 android:resource="@xml/file_paths"></meta-data>
         </provider>
 
-        <!-- AdMob application id. TODO(android-release): swap this Google TEST app id for the real AdMob
-             Android app id before a Play Store release (see docs/specs/2026-07-10-hoppala-android-design.md §5). -->
+        <!-- Real AdMob Android application id (Hoppala Android). -->
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
-            android:value="ca-app-pub-3940256099942544~3347511713" />
+            android:value="ca-app-pub-9920930529636149~5791865802" />
     </application>
 
     <!-- Permissions -->

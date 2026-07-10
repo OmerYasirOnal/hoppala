@@ -5,12 +5,10 @@ import { Capacitor } from '@capacitor/core';
 
 const platform: 'ios' | 'android' = Capacitor.getPlatform() === 'android' ? 'android' : 'ios';
 
-// Test-ad mode is per-platform, because the two platforms are at different release stages:
-//  • iOS ships real ads (its AdMob app + rewarded unit are approved) → TESTING off.
-//  • Android has no real AdMob app yet (deferred to the Play Store round), so it stays on Google's
-//    TEST ads — this keeps the revive fully FUNCTIONAL on Android (test ads always fill) instead of
-//    resolving to a non-existent real unit. Flip Android → false once its real IDs exist.
-const TESTING_BY_PLATFORM: Record<'ios' | 'android', boolean> = { ios: false, android: true };
+// Test-ad mode is per-platform. Both platforms now have real AdMob apps + rewarded units, so both ship
+// real ads. (Real ads only fill once each store listing is live/approved; until then the revive button
+// gates on ad-readiness and simply stays hidden — never a dead tap.)
+const TESTING_BY_PLATFORM: Record<'ios' | 'android', boolean> = { ios: false, android: false };
 
 /** Whether the current platform serves Google TEST rewarded ads (vs. the real unit). */
 export const TESTING = TESTING_BY_PLATFORM[platform];
@@ -22,9 +20,8 @@ const REWARDED = {
     test: 'ca-app-pub-3940256099942544/1712485313',
   },
   android: {
-    // TODO(android-release): replace with the real AdMob Android rewarded unit and flip
-    // TESTING_BY_PLATFORM.android → false. See docs/specs/2026-07-10-hoppala-android-design.md §5.
-    real: 'ca-app-pub-9920930529636149/ANDROID_REWARDED_TBD',
+    // Real AdMob Android rewarded unit "Hoppala Revive" (app id ...~5791865802).
+    real: 'ca-app-pub-9920930529636149/2716100152',
     test: 'ca-app-pub-3940256099942544/5224354917',
   },
 } as const;
