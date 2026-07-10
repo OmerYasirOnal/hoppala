@@ -13,6 +13,3 @@ const TEST_REWARDED = 'ca-app-pub-3940256099942544/1712485313';
 
 /** The rewarded ad unit to request — test unit while TESTING, real unit for the submission build. */
 export const REWARDED_AD_UNIT_ID = TESTING ? TEST_REWARDED : REAL_REWARDED;
-
-/** iOS AdMob App ID — also set as GADApplicationIdentifier in Info.plist. */
-export const IOS_APP_ID = 'ca-app-pub-9920930529636149~6215619200';

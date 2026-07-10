@@ -24,18 +24,14 @@ function preload(): void {
  * first ad preload. Every step is guarded — nothing here ever blocks startup or throws into the app.
  */
 export async function initAdMob(): Promise<void> {
-  try {
-    await AdMob.initialize({ initializeForTesting: TESTING });
-  } catch {
-    return; // SDK unavailable — leave bridge.showRewardedAd to resolve false gracefully
-  }
   // iOS App Tracking Transparency prompt (no-op on platforms without ATT).
   try {
     await AdMob.requestTrackingAuthorization();
   } catch {
     /* ATT unavailable — continue */
   }
-  // UMP / GDPR consent: request info, and only surface the form when it's required.
+  // UMP / GDPR consent: request info, and only surface the form when it's required. Per Google's
+  // documented UMP+GMA ordering, consent must be resolved before the Mobile Ads SDK starts.
   try {
     const info = await AdMob.requestConsentInfo();
     if (info.status === AdmobConsentStatus.REQUIRED) {
@@ -43,6 +39,11 @@ export async function initAdMob(): Promise<void> {
     }
   } catch {
     /* consent flow unavailable — continue */
+  }
+  try {
+    await AdMob.initialize({ initializeForTesting: TESTING });
+  } catch {
+    return; // SDK unavailable — leave bridge.showRewardedAd to resolve false gracefully
   }
   preload();
 }
