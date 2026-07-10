@@ -6,9 +6,13 @@ const AD_OPTS: AdOptions = { adId: REWARDED_AD_UNIT_ID, isTesting: TESTING };
 
 /** Whether a rewarded ad is prepared and ready to show instantly. */
 let loaded = false;
+/** A prepare is in flight — prevents duplicate concurrent preloads (e.g. game-over re-checks). */
+let loading = false;
 
 /** Prepare the next rewarded ad in the background (fire-and-forget) for instant playback. */
 function preload(): void {
+  if (loading) return;
+  loading = true;
   loaded = false;
   AdMob.prepareRewardVideoAd(AD_OPTS)
     .then(() => {
@@ -16,7 +20,20 @@ function preload(): void {
     })
     .catch(() => {
       loaded = false; // will be retried lazily by showRewardedAd()
+    })
+    .finally(() => {
+      loading = false;
     });
+}
+
+/** Whether a rewarded ad is preloaded and ready to show instantly. */
+export function isRewardedAdReady(): boolean {
+  return loaded;
+}
+
+/** (Re)preload a rewarded ad in the background if one isn't already ready. Fire-and-forget. */
+export function preloadRewardedAd(): void {
+  if (!loaded) preload();
 }
 
 /**

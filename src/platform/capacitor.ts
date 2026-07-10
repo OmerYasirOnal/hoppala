@@ -3,7 +3,7 @@ import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
 import { dayNumber } from '../core/daily';
 import { hapticFor, shouldSubmitDaily, LEADERBOARDS, type HapticKind } from './native-install';
 import { setBridge, type PlatformBridge } from './bridge';
-import { initAdMob, showRewardedAd } from './admob';
+import { initAdMob, showRewardedAd, isRewardedAdReady, preloadRewardedAd } from './admob';
 
 interface GameCenterPlugin {
   authenticate(): Promise<void>;
@@ -59,6 +59,8 @@ export function install(): void {
       safe(() => GameCenter.showLeaderboard());
     },
     showRewardedAd,
+    isRewardedAdReady,
+    preloadRewardedAd,
   };
 
   setBridge(nativeBridge);

@@ -9,6 +9,10 @@ export interface PlatformBridge {
   showLeaderboard?(): void;
   /** Native rewarded ad (AdMob). Resolves true when a reward is earned. Absent on web → caller uses the stub. */
   showRewardedAd?(): Promise<boolean>;
+  /** Whether a native rewarded ad is preloaded and ready to show instantly. Absent on web. */
+  isRewardedAdReady?(): boolean;
+  /** Ask the native layer to (re)preload a rewarded ad in the background. Absent on web. */
+  preloadRewardedAd?(): void;
 }
 
 let current: PlatformBridge = {
@@ -28,5 +32,11 @@ export const bridge: PlatformBridge = {
   // Exposed only when the active (native) bridge implements it, so the web build falls back to the stub.
   get showRewardedAd() {
     return current.showRewardedAd ? () => current.showRewardedAd!() : undefined;
+  },
+  get isRewardedAdReady() {
+    return current.isRewardedAdReady ? () => current.isRewardedAdReady!() : undefined;
+  },
+  get preloadRewardedAd() {
+    return current.preloadRewardedAd ? () => current.preloadRewardedAd!() : undefined;
   },
 };
