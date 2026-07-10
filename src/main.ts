@@ -207,6 +207,7 @@ const ui = createUI(uiRoot, {
       onMainMenu: () => {
         paused = false;
         playing = false;
+        overGen++; // invalidate any pending game-over-generation callbacks before leaving to the menu
         loop.start(); // onPause stopped the loop; restart it so the menu renders and the next run isn't soft-locked
         ui.showMenu(best, { day: dayNumber(new Date()), best: dailyBestFor(dateKey(new Date())) });
       },
@@ -216,6 +217,9 @@ const ui = createUI(uiRoot, {
     // From game-over: no run in flight, loop already running — return to the menu.
     paused = false;
     playing = false;
+    // Bump the generation so the pending online-rank re-render and the late ad-fill re-check bail out
+    // (both guard on `gen !== overGen`), instead of re-popping the game-over poster over the menu.
+    overGen++;
     loop.start(); // idempotent; guarantees the menu renders and the next run isn't soft-locked
     ui.showMenu(best, { day: dayNumber(new Date()), best: dailyBestFor(dateKey(new Date())) });
   },

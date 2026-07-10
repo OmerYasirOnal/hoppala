@@ -39,12 +39,12 @@ html, body { height: 100%; background: #0b1220; overscroll-behavior: none; }
 .mascot { width: 86px; height: 86px; display: block; margin: 0 auto -8px; overflow: visible; }
 .mascot-body { fill: #ffd23e; }
 .mascot-eyes circle { fill: #1c1c28; }
-.mascot-shadow { fill: rgba(0, 0, 0, 0.28); }
+.mascot-shadow { fill: #000; }
 .mascot-hop { transform-box: fill-box; transform-origin: center; animation: mascot-hop 1.15s ease-in-out infinite; }
 .mascot-eyes { transform-box: fill-box; transform-origin: center; animation: mascot-blink 3.6s infinite; }
 .mascot-shadow { transform-box: fill-box; transform-origin: center; animation: mascot-shadow 1.15s ease-in-out infinite; }
 @keyframes mascot-hop { 0%, 100% { transform: translateY(3px); } 50% { transform: translateY(-7px); } }
-@keyframes mascot-shadow { 0%, 100% { transform: scaleX(1); opacity: 0.28; } 50% { transform: scaleX(0.7); opacity: 0.14; } }
+@keyframes mascot-shadow { 0%, 100% { transform: scaleX(1); opacity: 0.22; } 50% { transform: scaleX(0.7); opacity: 0.1; } }
 @keyframes mascot-blink { 0%, 95%, 100% { transform: scaleY(1); } 97% { transform: scaleY(0.12); } }
 .poster-actions { display: flex; flex-direction: column; gap: 10px; width: 100%; margin-top: 2px; }
 .poster-actions button { width: 100%; }

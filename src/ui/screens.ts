@@ -145,6 +145,16 @@ export function createUI(
     poster.className = `poster ${screen}${animate ? ' enter' : ''}`;
     build(poster);
     panel.replaceChildren(poster);
+    // On an in-place game-over re-render (async rank / late ad-fill), the button list can change
+    // (e.g. the revive button appears, demoting "Again"). Briefly swallow taps so a button that
+    // shifted under the thumb can't cause a mis-tap.
+    if (!animate && screen === 'over') {
+      const actions = poster.querySelector('.poster-actions') as HTMLElement | null;
+      if (actions) {
+        actions.style.pointerEvents = 'none';
+        setTimeout(() => { actions.style.pointerEvents = ''; }, 300);
+      }
+    }
   }
 
   function showMenu(best: number, daily: { day: number; best: number }, rank?: string): void {
