@@ -11,6 +11,9 @@ importers:
       '@capacitor-community/admob':
         specifier: ^8.0.0
         version: 8.0.0
+      '@capacitor/android':
+        specifier: 8.4.1
+        version: 8.4.1(@capacitor/core@8.4.1)
       '@capacitor/core':
         specifier: ^8.4.1
         version: 8.4.1
@@ -558,6 +561,11 @@ packages:
   '@capacitor-community/admob@8.0.0':
     resolution: {integrity: sha512-+ZIq+UtcNvTMFwjvuhOuGvCjwK2Wu36lTIl9o1/CEjfp2Aj3m4b9zQGx0vXrERYqQmJp/Ven7ee3gGuh2Ym8nA==}
     engines: {node: '>=22.0.0'}
+
+  '@capacitor/android@8.4.1':
+    resolution: {integrity: sha512-igtDCJ7QQn0P2qHFD9p4KXaa6V1b2PRNt+MxjVwtjTm/BJvqmiazOJq6rPjwFSZnfHm6iFoZk8TfzHd44pyBGw==}
+    peerDependencies:
+      '@capacitor/core': ^8.4.0
 
   '@capacitor/assets@3.0.5':
     resolution: {integrity: sha512-ohz/OUq61Y1Fc6aVSt0uDrUdeOA7oTH4pkWDbv/8I3UrPjH7oPkzYhShuDRUjekNp9RBi198VSFdt0CetpEOzw==}
@@ -4493,6 +4501,10 @@ snapshots:
     dependencies:
       '@capacitor/core': 8.4.1
       '@rdlabo/capacitor-docgen': 0.4.1
+
+  '@capacitor/android@8.4.1(@capacitor/core@8.4.1)':
+    dependencies:
+      '@capacitor/core': 8.4.1
 
   '@capacitor/assets@3.0.5(@types/node@26.1.0)(typescript@6.0.3)':
     dependencies:
