@@ -10,6 +10,7 @@ export interface Save {
   onboarded?: boolean;
   lang?: 'tr' | 'en' | 'system';
   haptics?: boolean;
+  music?: boolean;
   sensitivity?: number;
   maxZone?: number;
   updatedAt?: number;
@@ -29,6 +30,7 @@ function read(): Save {
     if (v.onboarded === true) save.onboarded = true;
     if (v.lang === 'tr' || v.lang === 'en' || v.lang === 'system') save.lang = v.lang;
     if (typeof v.haptics === 'boolean') save.haptics = v.haptics;
+    if (typeof v.music === 'boolean') save.music = v.music;
     if (typeof v.sensitivity === 'number') save.sensitivity = v.sensitivity;
     if (typeof v.maxZone === 'number') save.maxZone = v.maxZone;
     if (typeof v.updatedAt === 'number') save.updatedAt = v.updatedAt;
@@ -78,6 +80,10 @@ export function saveHaptics(on: boolean): void {
   write({ ...read(), haptics: on });
 }
 
+export function saveMusic(on: boolean): void {
+  write({ ...read(), music: on });
+}
+
 export function saveSensitivity(sensitivity: number): void {
   write({ ...read(), sensitivity });
 }
@@ -100,7 +106,7 @@ export function toCloudSave(): CloudSave {
   return { name: s.name ?? '', best: s.best, dailyBest: s.dailyBest, maxZone: s.maxZone ?? 0, updatedAt: s.updatedAt ?? 0 };
 }
 
-/** Write an already-merged CloudSave back, preserving local-only fields (muted/onboarded/lang/haptics). */
+/** Write an already-merged CloudSave back, preserving local-only fields (muted/onboarded/lang/haptics/music). */
 export function writeCloudSave(c: CloudSave): void {
   const s = read();
   write({

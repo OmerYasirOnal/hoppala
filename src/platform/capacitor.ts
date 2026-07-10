@@ -1,4 +1,4 @@
-import { registerPlugin } from '@capacitor/core';
+import { registerPlugin, Capacitor } from '@capacitor/core';
 import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
 import { dayNumber } from '../core/daily';
 import { hapticFor, shouldSubmitDaily, LEADERBOARDS, type HapticKind } from './native-install';
@@ -41,13 +41,19 @@ function playHaptic(kind: HapticKind): void {
   }
 }
 
-/** Wires the real Capacitor/GameCenter platform bridge in place of the no-op default. */
+/** Wires the real Capacitor platform bridge in place of the no-op default. */
 export function install(): void {
+  // Game Center is Apple-only. On Android the plugin isn't implemented, so we skip it entirely — Android's
+  // leaderboard is the cross-platform Firebase board (online.submit, driven from main.ts). AdMob + haptics
+  // run on both platforms.
+  const isIOS = Capacitor.getPlatform() === 'ios';
+
   const nativeBridge: PlatformBridge = {
     onEvent(event) {
       playHaptic(hapticFor(event));
     },
     submitScore(score, mode, day) {
+      if (!isIOS) return;
       if (mode === 'daily') {
         if (!shouldSubmitDaily(day, dayNumber(new Date()))) return;
         safe(() => GameCenter.submitScore({ leaderboardId: LEADERBOARDS.daily, score }));
@@ -56,6 +62,7 @@ export function install(): void {
       safe(() => GameCenter.submitScore({ leaderboardId: LEADERBOARDS.free, score }));
     },
     showLeaderboard() {
+      if (!isIOS) return;
       safe(() => GameCenter.showLeaderboard());
     },
     showRewardedAd,
@@ -64,6 +71,6 @@ export function install(): void {
   };
 
   setBridge(nativeBridge);
-  safe(() => GameCenter.authenticate());
+  if (isIOS) safe(() => GameCenter.authenticate());
   safe(() => initAdMob());
 }
