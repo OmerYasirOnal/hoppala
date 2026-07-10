@@ -26,7 +26,7 @@ pnpm only. `pnpm dev` · `pnpm test` (Vitest) · `pnpm build` (`tsc --noEmit && 
 
 ## v1 non-goals (do not add without a new spec round)
 
-Accounts (real login), coins/cosmetics, enemies, analytics, ads, background music. (Daily mode shipped in v0.2.0; **online leaderboard + cloud save shipped in v1.2** via anonymous Firebase; app-store packaging is sub-project B.) Note: ads are the acknowledged future monetization endgame (retention-first) but remain a non-goal until their own spec round.
+Remaining non-goals: accounts (real login), coins/cosmetics, analytics. (Daily mode shipped in v0.2.0; **online leaderboard + cloud save shipped in v1.2** via anonymous Firebase; app-store packaging is sub-project B; **Android is sub-project C** — Capacitor Android platform, 2026-07-10.) **Shipped via their own spec rounds since v1:** enemies (v1.4), rewarded ads (v1.9 → native AdMob v1.10, retention-first monetization), and **generative ambient music** (2026-07-10, procedural Web Audio — see `docs/specs/2026-07-10-hoppala-ambient-music-design.md`). Each of those left this list once it had a spec round; add the rest the same way.
 
 ## Related
 

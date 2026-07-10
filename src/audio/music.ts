@@ -25,6 +25,8 @@ export interface Music {
   setZone(zoneIndex: number): void;
   /** A soft rising chime when a new zone is reached — a gentle musical "lift". */
   chime(): void;
+  /** Suspend/resume the audio thread (e.g. on tab/app backgrounding) to save CPU/battery. */
+  setSuspended(suspended: boolean): void;
 }
 
 export function createMusic(): Music {
@@ -41,7 +43,11 @@ export function createMusic(): Music {
   function build(ac: AudioContext): void {
     if (built) return;
     master = ac.createGain();
-    master.gain.value = 0; // fade in via setEnabled
+    master.gain.value = 0; // pure enable/mute gain — fades in via setEnabled, exactly 0 = truly silent
+    // "swell" gain carries the slow tremolo so the master can stay a clean 0/target; this keeps the
+    // pad fully silent when disabled (the tremolo can't leak a residual through the master).
+    const swell = ac.createGain();
+    swell.gain.value = 1;
     filter = ac.createBiquadFilter();
     filter.type = 'lowpass';
     filter.frequency.value = 820;
@@ -58,8 +64,9 @@ export function createMusic(): Music {
     delay.connect(fb);
     fb.connect(delay);
     delay.connect(wet);
-    wet.connect(master);
-    filter.connect(master);
+    wet.connect(swell);
+    filter.connect(swell);
+    swell.connect(master);
     master.connect(ac.destination);
 
     // pad voices — slightly detuned sine/triangle for warmth
@@ -83,12 +90,12 @@ export function createMusic(): Music {
     lfo.connect(lfoGain).connect(filter.frequency);
     lfo.start();
 
-    // a second, slower tremolo on the master for a tide-like swell
+    // a second, slower tremolo on the swell gain for a tide-like breathing (rides at 1.0 ± 0.02)
     const trem = ac.createOscillator();
     trem.frequency.value = 0.04;
     const tremGain = ac.createGain();
     tremGain.gain.value = 0.02;
-    trem.connect(tremGain).connect(master.gain);
+    trem.connect(tremGain).connect(swell.gain);
     trem.start();
 
     built = true;
@@ -145,6 +152,15 @@ export function createMusic(): Music {
           o.start(t0);
           o.stop(t0 + 1.2);
         });
+      } catch {
+        /* ignore */
+      }
+    },
+    setSuspended(suspended) {
+      if (!ctx) return;
+      try {
+        if (suspended) void ctx.suspend();
+        else void ctx.resume();
       } catch {
         /* ignore */
       }

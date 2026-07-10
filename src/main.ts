@@ -373,6 +373,7 @@ const loop = createLoop({
 loop.start();
 
 document.addEventListener('visibilitychange', () => {
+  music.setSuspended(document.hidden); // free CPU/battery — the always-on pad shouldn't run in the background
   if (document.hidden) loop.stop();
   else if (!paused) loop.start();
 });

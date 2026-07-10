@@ -106,7 +106,7 @@ export function toCloudSave(): CloudSave {
   return { name: s.name ?? '', best: s.best, dailyBest: s.dailyBest, maxZone: s.maxZone ?? 0, updatedAt: s.updatedAt ?? 0 };
 }
 
-/** Write an already-merged CloudSave back, preserving local-only fields (muted/onboarded/lang/haptics). */
+/** Write an already-merged CloudSave back, preserving local-only fields (muted/onboarded/lang/haptics/music). */
 export function writeCloudSave(c: CloudSave): void {
   const s = read();
   write({
