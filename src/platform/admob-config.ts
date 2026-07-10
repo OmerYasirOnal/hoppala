@@ -4,7 +4,7 @@
 // ⚠️ FLIP TO `false` FOR THE REAL SUBMISSION BUILD (see the spec §9 ship runbook).
 // While `true`, native builds serve Google's TEST rewarded ads — safe to tap, no invalid
 // clicks on the real unit.
-export const TESTING = false;
+export const TESTING = true;
 
 /** Real iOS rewarded ad unit "Hoppala Revive" (used when TESTING = false). */
 const REAL_REWARDED = 'ca-app-pub-9920930529636149/4744801032';
